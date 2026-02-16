@@ -23,7 +23,7 @@
     "tree-sitter-javascript": "^0.21.0",
     "tree-sitter-python": "^0.21.0",
     "tree-sitter-typescript": "^0.21.0",
-    "glob": "^10.3.10",
+    "glob": "^11.0.0",
     "axios": "^1.6.2",
     "octokit": "^3.1.2",
     "uuid": "^9.0.1"
