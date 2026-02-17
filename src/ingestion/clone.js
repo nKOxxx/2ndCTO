@@ -5,6 +5,7 @@ const os = require('os');
 const glob = require('glob');
 const { updateRepoStatus } = require('./github');
 const { supabase } = require('../db');
+const { RESOURCE_LIMITS, checkResourceLimits } = require('../config/limits');
 
 const CLONE_DIR = process.env.CLONE_DIR || path.join(os.tmpdir(), '2ndcto-clones');
 
@@ -21,6 +22,11 @@ async function ensureCloneDir() {
 async function cloneRepository(repo) {
   await ensureCloneDir();
   
+  // Check if repo size exceeds limit
+  if (repo.size_kb && repo.size_kb > RESOURCE_LIMITS.MAX_REPO_SIZE_MB * 1024) {
+    throw new Error(`Repository size (${Math.round(repo.size_kb / 1024)}MB) exceeds limit of ${RESOURCE_LIMITS.MAX_REPO_SIZE_MB}MB`);
+  }
+  
   const repoPath = path.join(CLONE_DIR, `${repo.owner}-${repo.name}`);
   
   // Remove if exists
@@ -35,17 +41,29 @@ async function cloneRepository(repo) {
   const git = simpleGit();
   
   try {
-    await git.clone(repo.clone_url, repoPath, [
+    // Clone with timeout
+    const clonePromise = git.clone(repo.clone_url, repoPath, [
       '--depth', '1', // Shallow clone for speed
       '--single-branch',
       '--branch', repo.default_branch || 'main'
     ]);
+    
+    // Add timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Clone timeout')), RESOURCE_LIMITS.CLONE_TIMEOUT_MS);
+    });
+    
+    await Promise.race([clonePromise, timeoutPromise]);
     
     console.log(`[@systems] Cloned to ${repoPath}`);
     return repoPath;
     
   } catch (error) {
     console.error('[@systems] Clone failed:', error.message);
+    // Cleanup on failure
+    try {
+      await fs.rm(repoPath, { recursive: true, force: true });
+    } catch (e) {}
     throw error;
   }
 }

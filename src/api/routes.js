@@ -5,6 +5,10 @@ const helmet = require('helmet');
 const { createRepo, getRepoById, updateRepoStatus } = require('../ingestion/github');
 const { queueRepoIngestion, modernizationQueue } = require('../queue');
 const { supabase } = require('../db');
+const { validateAddRepo, validateUUID, sanitizePath } = require('../middleware/security');
+const { analysisLimiter, modernizationLimiter } = require('../middleware/rate-limit');
+const { RESOURCE_LIMITS, checkResourceLimits } = require('../config/limits');
+const cleanupService = require('../services/cleanup');
 
 const router = express.Router();
 
@@ -14,15 +18,29 @@ router.get('/health', (req, res) => {
 });
 
 // Add repository
-router.post('/repos', async (req, res) => {
+router.post('/repos', analysisLimiter, validateAddRepo, async (req, res) => {
   try {
-    const { owner, name, github_url } = req.body;
-    
-    if (!owner || !name) {
-      return res.status(400).json({ error: 'owner and name required' });
-    }
+    const { owner, name } = req.body;
     
     console.log(`[@systems] Adding repo: ${owner}/${name}`);
+    
+    // Check daily analysis quota
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count: todayCount, error: countError } = await supabase
+      .from('repo_metrics')
+      .select('*', { count: 'exact', head: true })
+      .gte('measured_at', today.toISOString());
+    
+    if (countError) throw countError;
+    
+    if (todayCount >= RESOURCE_LIMITS.DAILY_ANALYSIS_QUOTA) {
+      return res.status(429).json({
+        error: 'Daily analysis quota exceeded',
+        limit: RESOURCE_LIMITS.DAILY_ANALYSIS_QUOTA,
+        retryAfter: '24 hours'
+      });
+    }
     
     // Create/update in database
     const repo = await createRepo(owner, name);
