@@ -127,6 +127,155 @@
         }
         .refresh-btn:hover { background: #33ddff; }
         
+        .search-container {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 14px 48px 14px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 18px;
+        }
+        
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        
+        .search-suggestions.active {
+            display: block;
+        }
+        
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .suggestion-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-type {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .suggestion-text {
+            flex: 1;
+        }
+        
+        .suggestion-desc {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+        
+        .search-results {
+            margin-top: 24px;
+        }
+        
+        .search-result-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .search-result-item:hover {
+            border-color: var(--accent);
+        }
+        
+        .search-result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .search-result-repo {
+            font-size: 13px;
+            color: var(--accent);
+        }
+        
+        .search-result-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        
+        .search-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
         .loading { text-align: center; padding: 40px; color: #888; }
         .error { background: #ff4757; color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
     </style>
@@ -136,7 +285,24 @@
         <h1>🚌 2ndCTO Trend Dashboard</h1>
         <p class="subtitle">Bus Factor & Risk Analysis</p>
         
+        <!-- Search Bar -->
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search findings, files, or repositories..." autocomplete="off">
+            <span class="search-icon">⌘K</span>
+            <div class="search-suggestions" id="searchSuggestions"></div>
+        </div>
+        
+        <div class="search-filters" id="searchFilters" style="display: none;">
+            <button class="filter-btn active" onclick="setSearchFilter('all')">All</button>
+            <button class="filter-btn" onclick="setSearchFilter('critical')">🔴 Critical</button>
+            <button class="filter-btn" onclick="setSearchFilter('high')">🟠 High</button>
+            <button class="filter-btn" onclick="setSearchFilter('secret')">🔑 Secrets</button>
+            <button class="filter-btn" onclick="setSearchFilter('vulnerability')">🛡️ Vulnerabilities</button>
+        </div>
+        
         <button class="refresh-btn" onclick="loadData()">↻ Refresh Data</button>
+        
+        <div id="searchResults" class="search-results" style="display: none;"></div>
         
         <div id="content">
             <div class="loading">Loading...</div>
@@ -366,6 +532,215 @@
         
         // Auto-refresh every 60 seconds
         setInterval(loadData, 60000);
+        
+        // ========== SEARCH FUNCTIONALITY ==========
+        
+        const searchInput = document.getElementById('searchInput');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+        const searchResults = document.getElementById('searchResults');
+        const searchFilters = document.getElementById('searchFilters');
+        let searchDebounceTimer;
+        let currentSearchFilter = 'all';
+        
+        // Focus search on Cmd+K / Ctrl+K
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                searchSuggestions.classList.remove('active');
+                searchResults.style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            }
+        });
+        
+        // Debounced search suggestions
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            clearTimeout(searchDebounceTimer);
+            
+            if (query.length < 2) {
+                searchSuggestions.classList.remove('active');
+                return;
+            }
+            
+            searchDebounceTimer = setTimeout(() => {
+                fetchSearchSuggestions(query);
+            }, 300);
+        });
+        
+        // Search on Enter
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query.length >= 2) {
+                    performSearch(query);
+                    searchSuggestions.classList.remove('active');
+                }
+            }
+        });
+        
+        // Hide suggestions on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) {
+                searchSuggestions.classList.remove('active');
+            }
+        });
+        
+        async function fetchSearchSuggestions(query) {
+            try {
+                const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+                if (!res.ok) return;
+                
+                const data = await res.json();
+                renderSuggestions(data.suggestions);
+            } catch (error) {
+                console.error('Suggestions error:', error);
+            }
+        }
+        
+        function renderSuggestions(suggestions) {
+            if (!suggestions || suggestions.length === 0) {
+                searchSuggestions.classList.remove('active');
+                return;
+            }
+            
+            const icons = {
+                rule: '🔍',
+                file: '📄',
+                repo: '📁'
+            };
+            
+            searchSuggestions.innerHTML = suggestions.map(s => `
+                <div class="suggestion-item" onclick="selectSuggestion('${s.text}', '${s.type}')">
+                    <span class="suggestion-type">${s.type}</span>
+                    <span class="suggestion-text">${highlightMatch(s.text, searchInput.value)}</span>
+                    ${s.description ? `<span class="suggestion-desc">${s.description.substring(0, 60)}...</span>` : ''}
+                </div>
+            `).join('');
+            
+            searchSuggestions.classList.add('active');
+        }
+        
+        function highlightMatch(text, query) {
+            const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+            return text.replace(regex, '<mark style="background: rgba(0, 212, 255, 0.3); color: inherit;">$1</mark>');
+        }
+        
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        function selectSuggestion(text, type) {
+            searchInput.value = text;
+            searchSuggestions.classList.remove('active');
+            performSearch(text, type);
+        }
+        
+        async function performSearch(query, type = null) {
+            showToast({
+                type: 'info',
+                title: 'Searching...',
+                message: `Looking for "${query}"...`,
+                duration: 2000
+            });
+            
+            try {
+                let url = `/api/search?q=${encodeURIComponent(query)}`;
+                if (currentSearchFilter !== 'all') {
+                    url += `&severity=${currentSearchFilter}`;
+                }
+                
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Search failed');
+                
+                const data = await res.json();
+                renderSearchResults(data);
+                
+            } catch (error) {
+                showToast({
+                    type: 'error',
+                    title: 'Search Failed',
+                    message: error.message,
+                    duration: 3000
+                });
+            }
+        }
+        
+        function renderSearchResults(data) {
+            // Hide main content, show results
+            document.getElementById('content').style.display = 'none';
+            searchResults.style.display = 'block';
+            searchFilters.style.display = 'flex';
+            
+            if (data.findings.length === 0) {
+                searchResults.innerHTML = createEmptyState({
+                    icon: '🔍',
+                    title: 'No Results Found',
+                    message: `No findings match "${data.query}". Try a different search term.`,
+                    actionText: 'Clear Search',
+                    actionHref: 'javascript:clearSearch()'
+                });
+                return;
+            }
+            
+            searchResults.innerHTML = `
+                <div class="section">
+                    <h2>🔍 Search Results</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Found ${data.total} results for "${data.query}" across ${data.repos_searched} repositories
+                    </p>
+                    ${data.findings.map(f => `
+                        <div class="search-result-item" onclick="viewFinding('${f.repo.id}', '${f.id}')">
+                            <div class="search-result-header">
+                                <span class="badge badge-${f.severity}">${f.severity.toUpperCase()}</span>
+                                <span class="search-result-repo">${f.repo.owner}/${f.repo.name}</span>
+                                <span style="color: var(--text-tertiary); font-size: 13px;">${f.category}</span>
+                            </div>
+                            <div style="font-weight: 500;">${f.description}</div>
+                            <div class="search-result-desc">
+                                📁 ${f.file_path}${f.line_number ? `:${f.line_number}` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function setSearchFilter(filter) {
+            currentSearchFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Re-search with filter
+            if (searchInput.value.trim().length >= 2) {
+                performSearch(searchInput.value.trim());
+            }
+        }
+        
+        function clearSearch() {
+            searchInput.value = '';
+            searchResults.style.display = 'none';
+            searchFilters.style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            searchSuggestions.classList.remove('active');
+        }
+        
+        function viewFinding(repoId, findingId) {
+            showToast({
+                type: 'info',
+                title: 'Opening Finding',
+                message: 'Loading report...',
+                duration: 1500
+            });
+            window.open(`/report.html?id=${repoId}#finding-${findingId}`, '_blank');
+        }
     </script>
     
     <!-- Toast Container -->

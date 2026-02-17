@@ -10,7 +10,12 @@ const { analysisLimiter, modernizationLimiter } = require('../middleware/rate-li
 const { RESOURCE_LIMITS, checkResourceLimits } = require('../config/limits');
 const cleanupService = require('../services/cleanup');
 
+const adminRoutes = require('./admin');
+
 const router = express.Router();
+
+// Admin routes (require auth + admin role)
+router.use('/admin', adminRoutes);
 
 // Health check
 router.get('/health', (req, res) => {
@@ -534,6 +539,112 @@ router.get('/modernize/:jobId/download/:fileId', async (req, res) => {
     
   } catch (error) {
     console.error('[@systems] Download failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// SEARCH: Find findings across all repos
+router.get('/search', async (req, res) => {
+  try {
+    const { q, severity, type, limit = 20 } = req.query;
+    
+    if (!q || q.length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+    
+    // Sanitize search query
+    const searchTerm = q.replace(/[%_]/g, '').toLowerCase();
+    
+    let query = supabase
+      .from('security_findings')
+      .select('*, repositories(owner, name)')
+      .or(`description.ilike.%${searchTerm}%,file_path.ilike.%${searchTerm}%,rule_id.ilike.%${searchTerm}%`)
+      .limit(parseInt(limit));
+    
+    if (severity) {
+      query = query.eq('severity', severity);
+    }
+    
+    if (type) {
+      query = query.eq('category', type);
+    }
+    
+    const { data: findings, error } = await query;
+    
+    if (error) throw error;
+    
+    // Get unique repos
+    const repoIds = [...new Set(findings.map(f => f.repo_id))];
+    
+    res.json({
+      query: q,
+      total: findings.length,
+      findings: findings.map(f => ({
+        id: f.id,
+        repo: {
+          id: f.repo_id,
+          owner: f.repositories?.owner,
+          name: f.repositories?.name
+        },
+        severity: f.severity,
+        category: f.category,
+        description: f.description,
+        file_path: f.file_path,
+        line_number: f.line_number,
+        rule_id: f.rule_id,
+        created_at: f.created_at
+      })),
+      repos_searched: repoIds.length
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Search failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// SEARCH: Autocomplete suggestions
+router.get('/search/suggestions', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.length < 2) {
+      return res.json({ suggestions: [] });
+    }
+    
+    const searchTerm = q.toLowerCase();
+    
+    // Get matching rule IDs
+    const { data: rules } = await supabase
+      .from('security_findings')
+      .select('rule_id, description')
+      .ilike('rule_id', `%${searchTerm}%`)
+      .limit(5);
+    
+    // Get matching file paths
+    const { data: files } = await supabase
+      .from('security_findings')
+      .select('file_path')
+      .ilike('file_path', `%${searchTerm}%`)
+      .limit(5);
+    
+    // Get matching repos
+    const { data: repos } = await supabase
+      .from('repositories')
+      .select('owner, name')
+      .or(`owner.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
+      .limit(5);
+    
+    const suggestions = [
+      ...(rules?.map(r => ({ type: 'rule', text: r.rule_id, description: r.description })) || []),
+      ...(files?.map(f => ({ type: 'file', text: f.file_path })) || []),
+      ...(repos?.map(r => ({ type: 'repo', text: `${r.owner}/${r.name}` })) || [])
+    ].slice(0, 10);
+    
+    res.json({ suggestions, query: q });
+    
+  } catch (error) {
+    console.error('[@systems] Suggestions failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
