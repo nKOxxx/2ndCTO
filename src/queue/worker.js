@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { repoQueue, analysisQueue } = require('./index');
+const { repoQueue, analysisQueue, queueAnalysis } = require('./index');
 const { ingestRepository } = require('../ingestion/clone');
 const CodeAnalyzer = require('../analysis');
 
@@ -16,11 +16,8 @@ repoQueue.process(async (job) => {
     const result = await ingestRepository(repoId);
     console.log(`[@systems] Ingestion job ${job.id} completed`);
     
-    // Queue analysis job after successful ingestion
-    await analysisQueue.add({ repoId }, {
-      attempts: 2,
-      timeout: 600000 // 10 minutes
-    });
+    // Queue analysis job with repo path
+    await queueAnalysis(repoId, result.repoPath);
     console.log(`[@systems] Queued analysis for repo ${repoId}`);
     
     return result;
@@ -33,11 +30,23 @@ repoQueue.process(async (job) => {
 // Process analysis jobs
 analysisQueue.process(async (job) => {
   console.log(`[@systems] Processing analysis job: ${job.id}`);
-  const { repoId } = job.data;
+  const { repoId, repoPath } = job.data;
   
   try {
-    const result = await analyzer.analyzeRepo(repoId);
+    const result = await analyzer.analyzeRepo(repoId, repoPath);
     console.log(`[@systems] Analysis job ${job.id} completed:`, result.success ? 'success' : 'failed');
+    
+    // Cleanup clone directory
+    if (repoPath) {
+      try {
+        const fs = require('fs').promises;
+        await fs.rm(repoPath, { recursive: true, force: true });
+        console.log(`[@systems] Cleaned up ${repoPath}`);
+      } catch (err) {
+        console.error('[@systems] Cleanup failed:', err.message);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error(`[@systems] Analysis job ${job.id} failed:`, error.message);

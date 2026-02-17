@@ -53,9 +53,9 @@ async function queueRepoIngestion(repoId) {
   }
 }
 
-async function queueAnalysis(repoId) {
+async function queueAnalysis(repoId, repoPath = null) {
   try {
-    const job = await analysisQueue.add({ repoId }, {
+    const job = await analysisQueue.add({ repoId, repoPath }, {
       attempts: 2,
       timeout: 600000 // 10 minutes
     });

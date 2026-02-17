@@ -270,4 +270,45 @@ router.get('/repos/:id/report', async (req, res) => {
   }
 });
 
+// WEEK 3: Bus Factor Analysis
+router.get('/repos/:id/bus-factor', async (req, res) => {
+  try {
+    const repo = await getRepoById(req.params.id);
+    
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+    
+    // Get stored bus factor if available
+    const { data: metrics, error: metricsError } = await supabase
+      .from('repo_metrics')
+      .select('bus_factor, measured_at')
+      .eq('repo_id', req.params.id)
+      .order('measured_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (metricsError || !metrics) {
+      return res.json({
+        repo_id: req.params.id,
+        status: 'not_calculated',
+        message: 'Bus factor not yet calculated. Re-analyze repo with git history.'
+      });
+    }
+    
+    res.json({
+      repo_id: req.params.id,
+      owner: repo.owner,
+      name: repo.name,
+      bus_factor: metrics.bus_factor,
+      measured_at: metrics.measured_at,
+      status: 'calculated'
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Get bus factor failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

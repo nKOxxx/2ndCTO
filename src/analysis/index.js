@@ -1,18 +1,29 @@
 const { supabase } = require('../db');
 const EntityExtractor = require('./entity-extractor');
 const SecurityScanner = require('./security-scanner');
+const GitParser = require('./git-parser');
 
 class CodeAnalyzer {
   constructor() {
     this.extractor = new EntityExtractor();
     this.security = new SecurityScanner();
+    this.gitParser = new GitParser();
   }
 
-  async analyzeRepo(repoId) {
+  async analyzeRepo(repoId, repoPath = null) {
     console.log(`[@systems] Starting analysis for repo ${repoId}`);
     const startTime = Date.now();
 
     try {
+      // Get repo details
+      const { data: repo, error: repoError } = await supabase
+        .from('repositories')
+        .select('*')
+        .eq('id', repoId)
+        .single();
+
+      if (repoError) throw repoError;
+
       // Get all files for this repo
       const { data: files, error } = await supabase
         .from('code_files')
@@ -78,6 +89,34 @@ class CodeAnalyzer {
       
       // Calculate risk score (0-100)
       const riskScore = this.calculateRiskScore(report.summary);
+      
+      // Calculate bus factor if git path available
+      let busFactor = null;
+      let gitAnalysis = null;
+      if (repoPath) {
+        try {
+          console.log(`[@systems] Calculating bus factor...`);
+          gitAnalysis = this.gitParser.analyzeRepo(repoPath);
+          busFactor = gitAnalysis.bus_factor;
+          console.log(`[@systems] Bus factor: ${busFactor} (${gitAnalysis.risk_level})`);
+        } catch (err) {
+          console.error('[@systems] Bus factor calculation failed:', err.message);
+        }
+      }
+      
+      // Save metrics
+      try {
+        await supabase.from('repo_metrics').insert({
+          repo_id: repoId,
+          risk_score: riskScore,
+          bus_factor: busFactor,
+          total_findings: totalFindings,
+          critical_findings: report.summary.critical,
+          measured_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('[@systems] Failed to save metrics:', err.message);
+      }
       
       // Update repo with results
       await supabase

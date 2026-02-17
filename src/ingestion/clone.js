@@ -218,17 +218,12 @@ async function ingestRepository(repoId) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`[@systems] Ingestion complete: ${stored} files in ${duration}s`);
     
-    // Cleanup
-    try {
-      await fs.rm(repoPath, { recursive: true, force: true });
-    } catch (err) {
-      console.error('[@systems] Cleanup failed:', err.message);
-    }
-    
+    // Return repoPath for analysis (cleanup happens after analysis)
     return {
       success: true,
       filesStored: stored,
-      duration: duration
+      duration: duration,
+      repoPath: repoPath
     };
     
   } catch (error) {
