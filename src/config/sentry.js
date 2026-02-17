@@ -24,7 +24,7 @@ function initSentry() {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV,
-    release: process.env.npm_package_version || '1.0.0',
+    release: process.env.npm_package_version || '1.1.0',
     
     // Performance monitoring
     tracesSampleRate: 0.1, // 10% of transactions

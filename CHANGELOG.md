@@ -2,6 +2,32 @@
 
 All notable changes to 2ndCTO will be documented in this file.
 
+## [1.1.0] - 2026-02-17
+
+### 🚀 The "Gold Master" Release
+
+This is the production-ready release after extensive security hardening and usability improvements.
+
+#### Security & Infrastructure
+- **Full Security Audit** - Input validation, rate limiting, resource limits
+- **Authentication System** - API keys with usage tracking
+- **Sentry Integration** - Error tracking and performance monitoring
+- **Auto-Cleanup** - Scheduled data retention and disk management
+- **Backup System** - Automated daily backups with integrity checks
+- **Admin Panel** - System management endpoints
+- **Request IDs** - Full request tracing for debugging
+
+#### Usability
+- **Skeleton Loading** - Animated placeholders instead of "Loading..."
+- **Empty States** - Helpful illustrations with CTAs
+- **Error States** - Actionable error messages with retry options
+- **Toast Notifications** - Non-blocking user feedback
+- **Global Search** - Find findings across all repos with autocomplete
+- **Onboarding Tour** - Interactive first-time user guide
+- **Keyboard Shortcuts** - Cmd+K for search, shortcuts throughout
+
+---
+
 ## [1.0.0] - 2026-02-17
 
 ### 🚀 Added

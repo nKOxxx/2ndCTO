@@ -19,7 +19,7 @@ router.use('/admin', adminRoutes);
 
 // Health check
 router.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: '2ndCTO', version: '0.2.0' });
+  res.json({ status: 'ok', service: '2ndCTO', version: '1.1.0' });
 });
 
 // Add repository

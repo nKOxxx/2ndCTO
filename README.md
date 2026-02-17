@@ -1,6 +1,7 @@
 # 2ndCTO - AI-Powered Codebase Risk Analyzer
 
-[![GitHub](https://img.shields.io/badge/GitHub-nKOxxx%2F2ndCTO-blue)](https://github.com/nKOxxx/2ndCTO)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/nKOxxx/2ndCTO)
+[![GitHub](https://img.shields.io/badge/GitHub-nKOxxx%2F2ndCTO-black)](https://github.com/nKOxxx/2ndCTO)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
