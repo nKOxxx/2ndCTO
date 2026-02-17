@@ -3,7 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const { createRepo, getRepoById, updateRepoStatus } = require('../ingestion/github');
-const { queueRepoIngestion } = require('../queue');
+const { queueRepoIngestion, modernizationQueue } = require('../queue');
 const { supabase } = require('../db');
 
 const router = express.Router();
@@ -307,6 +307,123 @@ router.get('/repos/:id/bus-factor', async (req, res) => {
     
   } catch (error) {
     console.error('[@systems] Get bus factor failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// WEEK 3 PART 2: Code Modernization
+router.post('/repos/:id/modernize', async (req, res) => {
+  try {
+    const repo = await getRepoById(req.params.id);
+    
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+    
+    const { 
+      targetLanguage = 'es2022',
+      transformations = ['callbacks', 'vars', 'functions', 'modules'],
+      files = []
+    } = req.body;
+    
+    // Create modernization job
+    const { data: job, error } = await supabase
+      .from('modernization_jobs')
+      .insert({
+        repo_id: req.params.id,
+        target_language: targetLanguage,
+        transformations,
+        file_count: files.length,
+        status: 'queued',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Queue the modernization job
+    await modernizationQueue.add({
+      jobId: job.id,
+      repoId: req.params.id,
+      targetLanguage,
+      transformations,
+      files
+    }, {
+      attempts: 2,
+      timeout: 600000 // 10 minutes
+    });
+    
+    res.json({
+      success: true,
+      job_id: job.id,
+      message: 'Modernization job queued',
+      files_to_process: files.length,
+      estimated_time: `${Math.ceil(files.length * 0.5)} minutes`
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Modernize failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get modernization job status
+router.get('/modernize/:jobId', async (req, res) => {
+  try {
+    const { data: job, error } = await supabase
+      .from('modernization_jobs')
+      .select('*')
+      .eq('id', req.params.jobId)
+      .single();
+    
+    if (error || !job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    res.json({
+      job_id: job.id,
+      status: job.status,
+      progress: job.progress || 0,
+      files_processed: job.files_processed || 0,
+      files_total: job.file_count,
+      results: job.results || null,
+      error: job.error || null,
+      created_at: job.created_at,
+      completed_at: job.completed_at
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Get modernize status failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Download modernized file
+router.get('/modernize/:jobId/download/:fileId', async (req, res) => {
+  try {
+    const { data: job, error } = await supabase
+      .from('modernization_jobs')
+      .select('results')
+      .eq('id', req.params.jobId)
+      .single();
+    
+    if (error || !job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    const file = job.results?.files?.find(f => f.id === req.params.fileId);
+    
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+    res.send(file.content);
+    
+  } catch (error) {
+    console.error('[@systems] Download failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

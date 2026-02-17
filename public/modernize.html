@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modernize Code - 2ndCTO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-tertiary: #484f58;
+            --accent: #00d4ff;
+            --accent-hover: #33ddff;
+            --success: #238636;
+            --warning: #f0883e;
+            --danger: #da3633;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Main Layout */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .file-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .file-item.active {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid var(--accent);
+        }
+        
+        .file-item input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+        
+        .file-icon {
+            font-size: 14px;
+        }
+        
+        .file-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .file-status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+        }
+        
+        .file-status.ready { background: rgba(35, 134, 54, 0.2); color: var(--success); }
+        .file-status.pending { background: var(--bg-tertiary); color: var(--text-tertiary); }
+        
+        /* Content Area */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .toolbar-spacer {
+            flex: 1;
+        }
+        
+        .view-toggle {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 4px;
+        }
+        
+        .view-btn {
+            padding: 6px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .view-btn.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        /* Editor Area */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .editor-pane:first-child {
+            border-right: 1px solid var(--border);
+        }
+        
+        .editor-header {
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .editor-lang {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            color: var(--text-tertiary);
+        }
+        
+        .editor {
+            flex: 1;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            resize: none;
+            outline: none;
+            overflow: auto;
+            white-space: pre;
+            tab-size: 2;
+        }
+        
+        .diff-view {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: var(--bg-primary);
+        }
+        
+        .diff-line {
+            display: flex;
+            padding: 2px 0;
+        }
+        
+        .diff-line-num {
+            width: 50px;
+            text-align: right;
+            padding-right: 16px;
+            color: var(--text-tertiary);
+            user-select: none;
+        }
+        
+        .diff-line-content {
+            flex: 1;
+            white-space: pre;
+        }
+        
+        .diff-add {
+            background: rgba(35, 134, 54, 0.2);
+        }
+        
+        .diff-add .diff-line-num {
+            color: var(--success);
+        }
+        
+        .diff-remove {
+            background: rgba(218, 54, 51, 0.2);
+        }
+        
+        .diff-remove .diff-line-num {
+            color: var(--danger);
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            padding: 8px 20px;
+            background: var(--accent);
+            color: #000;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .status-bar.success {
+            background: var(--success);
+            color: #fff;
+        }
+        
+        .status-bar.error {
+            background: var(--danger);
+            color: #fff;
+        }
+        
+        .status-bar.hidden {
+            display: none;
+        }
+        
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        .loading-overlay.hidden {
+            display: none;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon">🚌</div>
+            2ndCTO
+        </a>
+        <span class="header-title">Code Modernization Studio</span>
+        <a href="/dashboard.html" class="btn btn-secondary">← Back to Dashboard</a>
+    </header>
+
+    <div class="main">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Conversion Settings</div>
+                
+                <div class="form-group">
+                    <label class="form-label">Source Language</label>
+                    <select class="form-select" id="sourceLang">
+                        <option value="es5">JavaScript (ES5)</option>
+                        <option value="es6">JavaScript (ES6)</option>
+                        <option value="python2">Python 2.7</option>
+                        <option value="jquery">jQuery Code</option>
+                        <option value="commonjs">CommonJS Modules</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Target Language</label>
+                    <select class="form-select" id="targetLang">
+                        <option value="es2022" selected>JavaScript (ES2022)</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="python3">Python 3.11</option>
+                        <option value="esmodules">ES Modules</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Transformations</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="transformCallbacks" checked>
+                            <span>Callbacks → Async/Await</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="transformVars" checked>
+                            <span>var → let/const</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="transformFunctions" checked>
+                            <span>Functions → Arrow Functions</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="transformClasses">
+                            <span>Prototypes → Classes</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="transformModules" checked>
+                            <span>require → import</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; padding: 0;">
+                <div class="sidebar-title" style="padding: 20px 20px 12px;">Files to Convert</div>
+                <div class="file-list" id="fileList">
+                    <div class="empty-state" style="padding: 20px;">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📁</div>
+                        <p style="font-size: 13px;">Loading files...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <button class="btn btn-primary" id="convertBtn" style="width: 100%;" onclick="startConversion()">
+                    🚀 Convert Selected Files
+                </button>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="content">
+            <div class="toolbar">
+                <span id="currentFile">Select a file to preview</span>
+                <div class="toolbar-spacer"></div>
+                <div class="view-toggle">
+                    <button class="view-btn active" onclick="setView('side-by-side')">Side by Side</button>
+                    <button class="view-btn" onclick="setView('diff')">Diff View</button>
+                </div>
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadCode()" disabled>
+                    💾 Download
+                </button>
+                <button class="btn btn-secondary" id="testBtn" onclick="runTests()" disabled>
+                    🧪 Test
+                </button>
+            </div>
+            
+            <div class="editor-container" id="editorContainer">
+                <div class="editor-pane">
+                    <div class="editor-header">
+                        <span class="editor-title">Original Code</span>
+                        <span class="editor-lang" id="sourceLangBadge">ES5</span>
+                    </div>
+                    <textarea class="editor" id="originalCode" readonly placeholder="Select a file to view original code..."></textarea>
+                </div>
+                <div class="editor-pane">
+                    <div class="editor-header">
+                        <span class="editor-title">Modernized Code</span>
+                        <span class="editor-lang" id="targetLangBadge">ES2022</span>
+                    </div>
+                    <textarea class="editor" id="modernizedCode" placeholder="Converted code will appear here...&#10;&#10;Click 'Convert Selected Files' to start..."></textarea>
+                </div>
+            </div>
+            
+            <div class="status-bar hidden" id="statusBar">
+                <span id="statusText">Ready</span>
+            </div>
+        </main>
+    </div>
+
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Analyzing codebase...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const repoId = urlParams.get('id');
+        
+        let files = [];
+        let selectedFile = null;
+        let currentView = 'side-by-side';
+        
+        // Language display names
+        const LANG_NAMES = {
+            es5: 'ES5',
+            es6: 'ES6',
+            es2022: 'ES2022',
+            typescript: 'TypeScript',
+            python2: 'Python 2.7',
+            python3: 'Python 3.11',
+            jquery: 'jQuery',
+            commonjs: 'CommonJS',
+            esmodules: 'ES Modules'
+        };
+        
+        // Sample conversion rules (will be backend-driven in production)
+        const CONVERSION_RULES = {
+            es5_to_es2022: {
+                callbacks: {
+                    pattern: /(\w+)\s*\(\s*function\s*\([^)]*\)\s*\{/g,
+                    replacement: 'await $1(',
+                    description: 'Convert callbacks to async/await'
+                },
+                var_to_const: {
+                    pattern: /\bvar\b/g,
+                    replacement: 'const',
+                    description: 'var → const'
+                },
+                functions: {
+                    pattern: /function\s+(\w+)\s*\(/g,
+                    replacement: 'const $1 = (',
+                    description: 'function → arrow function'
+                }
+            }
+        };
+        
+        async function loadFiles() {
+            showLoading('Loading repository files...');
+            
+            try {
+                // In production: fetch from /api/repos/${repoId}/files
+                // For demo: simulate file list
+                await new Promise(r => setTimeout(r, 1000));
+                
+                files = [
+                    { id: 1, name: 'src/utils/helpers.js', lang: 'es5', selected: true },
+                    { id: 2, name: 'src/api/client.js', lang: 'es5', selected: true },
+                    { id: 3, name: 'lib/legacy-module.js', lang: 'commonjs', selected: false },
+                    { id: 4, name: 'src/app.js', lang: 'es6', selected: false },
+                    { id: 5, name: 'scripts/build.py', lang: 'python2', selected: false }
+                ];
+                
+                renderFileList();
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showStatus('Error loading files: ' + error.message, 'error');
+            }
+        }
+        
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            
+            if (files.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
+                        <p>No files found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = files.map(f => `
+                <div class="file-item ${selectedFile?.id === f.id ? 'active' : ''}" onclick="selectFile(${f.id})">
+                    <input type="checkbox" ${f.selected ? 'checked' : ''} onclick="toggleFile(${f.id}, event)">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">${f.name}</span>
+                    <span class="file-status ${f.converted ? 'ready' : 'pending'}">${f.converted ? '✓' : ''}</span>
+                </div>
+            `).join('');
+        }
+        
+        function selectFile(id) {
+            selectedFile = files.find(f => f.id === id);
+            renderFileList();
+            loadFileContent();
+        }
+        
+        function toggleFile(id, event) {
+            event.stopPropagation();
+            const file = files.find(f => f.id === id);
+            if (file) file.selected = !file.selected;
+        }
+        
+        async function loadFileContent() {
+            if (!selectedFile) return;
+            
+            // In production: fetch actual file content from backend
+            // For demo: show sample ES5 code
+            const sampleES5 = `// Legacy ES5 code example
+var http = require('http');
+var url = require('url');
+
+function handleRequest(req, res) {
+    var parsedUrl = url.parse(req.url, true);
+    var pathname = parsedUrl.pathname;
+    
+    if (pathname === '/api/data') {
+        getDataFromDatabase(function(err, data) {
+            if (err) {
+                res.writeHead(500);
+                res.end('Error: ' + err.message);
+                return;
+            }
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify(data));
+        });
+    } else {
+        res.writeHead(404);
+        res.end('Not Found');
+    }
+}
+
+function getDataFromDatabase(callback) {
+    var connection = createConnection();
+    connection.query('SELECT * FROM users', function(err, results) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        callback(null, results);
+    });
+}
+
+var server = http.createServer(handleRequest);
+server.listen(3000, function() {
+    console.log('Server running on port 3000');
+});
+
+module.exports = { handleRequest: handleRequest };`;
+            
+            document.getElementById('originalCode').value = sampleES5;
+            document.getElementById('currentFile').textContent = selectedFile.name;
+            updateLangBadges();
+        }
+        
+        function updateLangBadges() {
+            const sourceLang = document.getElementById('sourceLang').value;
+            const targetLang = document.getElementById('targetLang').value;
+            
+            document.getElementById('sourceLangBadge').textContent = LANG_NAMES[sourceLang] || sourceLang;
+            document.getElementById('targetLangBadge').textContent = LANG_NAMES[targetLang] || targetLang;
+        }
+        
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // In production: switch between side-by-side and diff views
+            if (view === 'diff') {
+                showStatus('Diff view - feature in development', 'info');
+            }
+        }
+        
+        async function startConversion() {
+            const selectedFiles = files.filter(f => f.selected);
+            
+            if (selectedFiles.length === 0) {
+                showStatus('Please select at least one file to convert', 'error');
+                return;
+            }
+            
+            showLoading(`Converting ${selectedFiles.length} files...`);
+            
+            try {
+                // In production: POST to /api/repos/${repoId}/modernize
+                await new Promise(r => setTimeout(r, 2000));
+                
+                // Demo conversion
+                const modernized = convertCode(document.getElementById('originalCode').value);
+                document.getElementById('modernizedCode').value = modernized;
+                
+                selectedFiles.forEach(f => f.converted = true);
+                renderFileList();
+                
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('testBtn').disabled = false;
+                
+                hideLoading();
+                showStatus(`✓ Converted ${selectedFiles.length} files successfully`, 'success');
+            } catch (error) {
+                hideLoading();
+                showStatus('Conversion failed: ' + error.message, 'error');
+            }
+        }
+        
+        function convertCode(original) {
+            const useCallbacks = document.getElementById('transformCallbacks').checked;
+            const useVars = document.getElementById('transformVars').checked;
+            const useFunctions = document.getElementById('transformFunctions').checked;
+            const useModules = document.getElementById('transformModules').checked;
+            
+            let converted = original;
+            
+            // Apply transformations
+            if (useModules) {
+                converted = converted.replace(/var (\w+) = require\(['"]([^'"]+)['"]\);?/g, 
+                    "import $1 from '$2';");
+            }
+            
+            if (useVars) {
+                converted = converted.replace(/\bvar\b/g, 'const');
+            }
+            
+            if (useFunctions) {
+                // Convert function declarations to arrow functions where appropriate
+                converted = converted.replace(/function (\w+)\(/g, 'const $1 = (');
+                converted = converted.replace(/\) \{/g, ') => {');
+            }
+            
+            if (useCallbacks) {
+                // Simplified callback to async/await demo
+                converted = `// Modernized with async/await
+import http from 'http';
+import url from 'url';
+
+const handleRequest = async (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
+    
+    if (pathname === '/api/data') {
+        try {
+            const data = await getDataFromDatabase();
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify(data));
+        } catch (err) {
+            res.writeHead(500);
+            res.end('Error: ' + err.message);
+        }
+    } else {
+        res.writeHead(404);
+        res.end('Not Found');
+    }
+};
+
+const getDataFromDatabase = async () => {
+    const connection = createConnection();
+    const results = await connection.query('SELECT * FROM users');
+    return results;
+};
+
+const server = http.createServer(handleRequest);
+server.listen(3000, () => {
+    console.log('Server running on port 3000');
+});
+
+export { handleRequest };`;
+            }
+            
+            return converted;
+        }
+        
+        function downloadCode() {
+            const code = document.getElementById('modernizedCode').value;
+            const blob = new Blob([code], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = selectedFile ? selectedFile.name.replace('.js', '.modernized.js') : 'modernized.js';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('Downloaded converted file', 'success');
+        }
+        
+        async function runTests() {
+            showLoading('Running tests on converted code...');
+            
+            try {
+                // In production: send to backend for testing
+                await new Promise(r => setTimeout(r, 1500));
+                
+                hideLoading();
+                showStatus('✓ All tests passed (12/12)', 'success');
+            } catch (error) {
+                hideLoading();
+                showStatus('Tests failed: ' + error.message, 'error');
+            }
+        }
+        
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        function showStatus(text, type) {
+            const bar = document.getElementById('statusBar');
+            const txt = document.getElementById('statusText');
+            
+            bar.className = 'status-bar ' + type;
+            txt.textContent = text;
+            
+            setTimeout(() => {
+                bar.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Event listeners for language changes
+        document.getElementById('sourceLang').addEventListener('change', updateLangBadges);
+        document.getElementById('targetLang').addEventListener('change', updateLangBadges);
+        
+        // Initialize
+        loadFiles();
+    </script>
+</body>
+</html>

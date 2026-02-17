@@ -20,6 +20,7 @@ if (redisUrl.startsWith('rediss://')) {
 // Create queues with proper config
 const repoQueue = new Queue('repo-ingestion', redisUrl, redisOptions);
 const analysisQueue = new Queue('code-analysis', redisUrl, redisOptions);
+const modernizationQueue = new Queue('code-modernization', redisUrl, redisOptions);
 
 // Queue event handlers
 repoQueue.on('completed', (job, result) => {
@@ -70,6 +71,7 @@ async function queueAnalysis(repoId, repoPath = null) {
 module.exports = {
   repoQueue,
   analysisQueue,
+  modernizationQueue,
   queueRepoIngestion,
   queueAnalysis
 };

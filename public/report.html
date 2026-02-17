@@ -486,6 +486,7 @@
         </a>
         <div class="header-actions">
             <a href="/dashboard.html" class="btn btn-secondary">Dashboard</a>
+            <button class="btn btn-secondary" onclick="openModernize()">🔄 Modernize Code</button>
             <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
         </div>
     </header>
@@ -704,6 +705,35 @@
                     </div>
                 </div>
 
+                <!-- Modernize Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="section-icon info">🔄</div>
+                            Code Modernization
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        <div class="bus-factor-info">
+                            <div class="info-box">
+                                <h4>Legacy Code Detected</h4>
+                                <p>
+                                    This repository contains legacy patterns that can be automatically modernized:
+                                    ES5 syntax, callbacks, var declarations, and CommonJS modules.
+                                </p>
+                            </div>
+                            <div class="info-box" style="text-align: center;">
+                                <button class="btn btn-primary btn-large" onclick="openModernize()">
+                                    🚀 Open Modernization Studio
+                                </button>
+                                <p style="margin-top: 12px; font-size: 13px;">
+                                    Convert ES5 → ES2022, callbacks → async/await, and more
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Trends Section -->
                 ${trends.data_points > 1 ? `
                     <div class="section-card">
@@ -767,6 +797,10 @@
 
         function downloadPDF() {
             alert('PDF export coming in v1.0!');
+        }
+
+        function openModernize() {
+            window.open(`/modernize.html?id=${repoId}`, '_blank');
         }
 
         // Load report on page load
