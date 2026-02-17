@@ -23,8 +23,8 @@ class EntityExtractor {
         signature: func.signature,
         start_line: func.start_line,
         end_line: func.end_line,
-        complexity_score: func.complexity || 1,
-        dependencies: imports
+        complexity_score: func.complexity || 1
+        // dependencies: imports  // TODO: Resolve to UUIDs later
       });
     }
 
@@ -34,9 +34,12 @@ class EntityExtractor {
   async saveEntities(repoId, entities) {
     if (entities.length === 0) return;
 
+    // Add repo_id to each entity
+    const entitiesWithRepo = entities.map(e => ({ ...e, repo_id: repoId }));
+
     const { error } = await supabase
       .from('code_entities')
-      .insert(entities);
+      .insert(entitiesWithRepo);
 
     if (error) {
       console.error('[@systems] Failed to save entities:', error.message);
