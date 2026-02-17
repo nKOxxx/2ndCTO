@@ -125,29 +125,55 @@
         <div id="content">
             <div class="loading">Loading...</div>
         </div>
+        <pre id="debug" style="margin-top: 20px; padding: 10px; background: #1a1a2e; border-radius: 6px; font-family: monospace; font-size: 11px; color: #888; max-height: 200px; overflow: auto;"></pre>
     </div>
 
     <script>
-        const API_BASE = window.location.origin;
+        const API_BASE = '';
+        
+        function debug(msg) {
+            const d = document.getElementById('debug');
+            d.textContent += msg + '\n';
+            console.log(msg);
+        }
         
         async function loadData() {
             const content = document.getElementById('content');
+            const debugEl = document.getElementById('debug');
+            debugEl.textContent = '';
             content.innerHTML = '<div class="loading">Loading...</div>';
             
             try {
-                const [trends, repos] = await Promise.all([
-                    fetch(`${API_BASE}/api/trends`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/repos`).then(r => r.json())
-                ]);
+                debug('Fetching trends...');
+                const trendsRes = await fetch('/api/trends');
+                debug('Trends status: ' + trendsRes.status);
+                if (!trendsRes.ok) throw new Error('Trends API: ' + trendsRes.status);
+                const trends = await trendsRes.json();
+                debug('Trends: ' + JSON.stringify(trends).slice(0, 200));
                 
+                debug('Fetching repos...');
+                const reposRes = await fetch('/api/repos');
+                debug('Repos status: ' + reposRes.status);
+                if (!reposRes.ok) throw new Error('Repos API: ' + reposRes.status);
+                const repos = await reposRes.json();
+                debug('Repos count: ' + (repos.repos ? repos.repos.length : repos.length));
+                
+                debug('Rendering...');
                 renderDashboard(trends, repos);
+                debug('Done!');
             } catch (error) {
-                content.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+                debug('ERROR: ' + error.message);
+                content.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
             }
         }
         
-        function renderDashboard(trends, repos) {
+        function renderDashboard(trends, reposData) {
             const content = document.getElementById('content');
+            
+            // Handle repos response structure
+            const reposList = reposData.repos || reposData;
+            
+            console.log('Rendering with:', { trends, reposData, reposList });
             
             if (!trends.repos_analyzed) {
                 content.innerHTML = '<div class="section"><p>No analysis data yet. Analyze some repositories first.</p></div>';
@@ -199,7 +225,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${trends.repos.map(repo => `
+                            ${(trends.repos || []).map(repo => `
                                 <tr onclick="viewRepo('${repo.id}')" style="cursor: pointer;">
                                     <td><strong>${repo.owner}/${repo.name}</strong></td>
                                     <td>
@@ -239,7 +265,7 @@
         }
         
         function viewRepo(repoId) {
-            window.open(`/api/repos/${repoId}/report`, '_blank');
+            window.open(`/report.html?id=${repoId}`, '_blank');
         }
         
         // Load on page load

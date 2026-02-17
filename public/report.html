@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Analysis Report - 2ndCTO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-tertiary: #484f58;
+            --accent: #00d4ff;
+            --accent-hover: #33ddff;
+            --success: #238636;
+            --warning: #f0883e;
+            --danger: #da3633;
+            --info: #58a6ff;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 20px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+        
+        /* Repo Header */
+        .repo-header {
+            margin-bottom: 32px;
+        }
+        
+        .repo-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .repo-meta {
+            display: flex;
+            gap: 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .repo-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        /* Score Cards */
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .score-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        
+        .score-card.critical::before { background: var(--danger); }
+        .score-card.warning::before { background: var(--warning); }
+        .score-card.good::before { background: var(--success); }
+        
+        .score-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .score-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .score-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .score-badge.critical { background: rgba(218, 54, 51, 0.2); color: var(--danger); }
+        .score-badge.warning { background: rgba(240, 136, 62, 0.2); color: var(--warning); }
+        .score-badge.good { background: rgba(35, 134, 54, 0.2); color: var(--success); }
+        
+        .score-value {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .score-value.critical { color: var(--danger); }
+        .score-value.warning { color: var(--warning); }
+        .score-value.good { color: var(--success); }
+        
+        .score-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        /* Gauge */
+        .gauge-container {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0;
+        }
+        
+        .gauge {
+            width: 120px;
+            height: 60px;
+            position: relative;
+        }
+        
+        .gauge-bg {
+            width: 120px;
+            height: 60px;
+            background: conic-gradient(from 180deg, var(--success) 0deg, var(--warning) 90deg, var(--danger) 180deg, transparent 180deg);
+            border-radius: 120px 120px 0 0;
+            mask: radial-gradient(circle at 50% 100%, transparent 45%, black 46%);
+            -webkit-mask: radial-gradient(circle at 50% 100%, transparent 45%, black 46%);
+        }
+        
+        .gauge-needle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            height: 50px;
+            background: var(--text-primary);
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(-90deg);
+            transition: transform 1s ease;
+            border-radius: 2px;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        /* Section Cards */
+        .section-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .section-icon.danger { background: rgba(218, 54, 51, 0.2); }
+        .section-icon.warning { background: rgba(240, 136, 62, 0.2); }
+        .section-icon.info { background: rgba(88, 166, 255, 0.2); }
+        
+        .section-count {
+            padding: 4px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .section-content {
+            padding: 24px;
+        }
+        
+        /* Finding Item */
+        .finding {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        
+        .finding:last-child {
+            margin-bottom: 0;
+        }
+        
+        .finding-severity {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+        
+        .finding-severity.critical { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .finding-severity.high { background: var(--warning); }
+        .finding-severity.medium { background: var(--info); }
+        .finding-severity.low { background: var(--text-tertiary); }
+        
+        .finding-content {
+            flex: 1;
+        }
+        
+        .finding-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .finding-location {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .finding-evidence {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+            overflow-x: auto;
+        }
+        
+        .finding-explanation {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--info);
+        }
+        
+        .finding-explanation strong {
+            color: var(--text-primary);
+        }
+        
+        /* Risk Breakdown */
+        .risk-breakdown {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .risk-item {
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+        
+        .risk-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .risk-number.critical { color: var(--danger); }
+        .risk-number.high { color: var(--warning); }
+        .risk-number.medium { color: var(--info); }
+        .risk-number.low { color: var(--text-secondary); }
+        
+        .risk-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        /* Bus Factor Info */
+        .bus-factor-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .info-box {
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+        
+        .info-box h4 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .info-box p {
+            font-size: 15px;
+            line-height: 1.8;
+        }
+        
+        .knowledge-silo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .silo-owner {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .silo-area {
+            color: var(--text-secondary);
+        }
+        
+        .silo-files {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 64px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .score-grid { grid-template-columns: 1fr; }
+            .risk-breakdown { grid-template-columns: repeat(2, 1fr); }
+            .bus-factor-info { grid-template-columns: 1fr; }
+            .container { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="logo">
+            <div class="logo-icon">🚌</div>
+            2ndCTO
+        </a>
+        <div class="header-actions">
+            <a href="/dashboard.html" class="btn btn-secondary">Dashboard</a>
+            <button class="btn btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+        </div>
+    </header>
+
+    <main class="container" id="report">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading report...</p>
+        </div>
+    </main>
+
+    <script>
+        // Risk explanations database
+        const RISK_EXPLANATIONS = {
+            SECRET_API_KEY: {
+                what: "An API key or secret token was found hardcoded in the source code.",
+                why: "Hardcoded secrets can be exposed through version control, logs, or unauthorized access. Attackers can use these to access your services.",
+                fix: "Move secrets to environment variables or use a secrets manager like AWS Secrets Manager, HashiCorp Vault, or Doppler."
+            },
+            HARDCODED_PASSWORD: {
+                what: "A password was found embedded directly in the code.",
+                why: "Passwords in code are visible to anyone with repository access and remain in git history even after removal.",
+                fix: "Use environment variables for credentials. Implement proper authentication using OAuth, SSO, or secure credential stores."
+            },
+            SQL_INJECTION: {
+                what: "User input is being concatenated directly into SQL queries.",
+                why: "Attackers can inject malicious SQL to read, modify, or delete database data. This is one of the most common attack vectors.",
+                fix: "Use parameterized queries or ORM methods. Never concatenate user input into SQL strings. Validate and sanitize all inputs."
+            },
+            EVAL_USAGE: {
+                what: "The eval() function is being used to execute dynamic code.",
+                why: "eval() can execute arbitrary code, allowing attackers to run malicious scripts if they control the input.",
+                fix: "Use JSON.parse() for JSON data. For dynamic code, use safer alternatives like Function constructor with strict mode or refactor to avoid dynamic execution."
+            },
+            INSECURE_RANDOM: {
+                what: "Math.random() is being used for security-sensitive operations.",
+                why: "Math.random() is not cryptographically secure and can be predicted by attackers.",
+                fix: "Use crypto.randomBytes() in Node.js or crypto.getRandomValues() in browsers for security operations like tokens, IDs, or passwords."
+            },
+            DEBUGGER_STATEMENT: {
+                what: "A debugger statement was left in production code.",
+                why: "Debugger statements can pause execution and expose internal state to anyone with DevTools open.",
+                fix: "Remove all debugger statements before deploying. Use ESLint with 'no-debugger' rule to catch these automatically."
+            },
+            default: {
+                what: "A potential security issue was detected in this code.",
+                why: "This pattern matches known vulnerable coding practices that could be exploited.",
+                fix: "Review the code carefully and follow security best practices for your programming language and framework."
+            }
+        };
+
+        // Get repo ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const repoId = urlParams.get('id') || window.location.pathname.split('/').pop();
+
+        async function loadReport() {
+            const container = document.getElementById('report');
+            
+            try {
+                // Fetch report data
+                const [reportRes, busFactorRes, trendsRes] = await Promise.all([
+                    fetch(`/api/repos/${repoId}/report`),
+                    fetch(`/api/repos/${repoId}/bus-factor`),
+                    fetch(`/api/repos/${repoId}/trends`)
+                ]);
+
+                if (!reportRes.ok) throw new Error('Failed to load report');
+
+                const report = await reportRes.json();
+                const busFactor = await busFactorRes.json();
+                const trends = await trendsRes.json();
+
+                renderReport(report, busFactor, trends);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <h3>Error Loading Report</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderReport(report, busFactor, trends) {
+            const container = document.getElementById('report');
+            const repo = report.repo;
+            const analysis = report.analysis;
+            const security = report.security;
+            
+            // Determine risk levels
+            const riskLevel = analysis.risk_score >= 70 ? 'critical' : analysis.risk_score >= 40 ? 'warning' : 'good';
+            const busFactorLevel = busFactor.bus_factor <= 1.5 ? 'critical' : busFactor.bus_factor <= 3 ? 'warning' : 'good';
+            
+            container.innerHTML = `
+                <div class="repo-header">
+                    <h1 class="repo-title">${repo.owner}/${repo.name}</h1>
+                    <div class="repo-meta">
+                        <span>⭐ ${repo.stars?.toLocaleString() || 0} stars</span>
+                        <span>📝 ${repo.language || 'Unknown'}</span>
+                        <span>🕐 Last analyzed: ${new Date(analysis.last_analyzed).toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div class="score-grid">
+                    <div class="score-card ${riskLevel}">
+                        <div class="score-header">
+                            <span class="score-label">Risk Score</span>
+                            <span class="score-badge ${riskLevel}">${riskLevel}</span>
+                        </div>
+                        <div class="gauge-container">
+                            <div class="gauge">
+                                <div class="gauge-bg"></div>
+                                <div class="gauge-needle" style="transform: translateX(-50%) rotate(${-90 + (analysis.risk_score / 100) * 180}deg)"></div>
+                                <div class="gauge-value ${riskLevel}">${analysis.risk_score}</div>
+                            </div>
+                        </div>
+                        <p class="score-description">
+                            ${analysis.risk_score >= 70 ? 'Critical issues detected. Immediate attention required.' : 
+                              analysis.risk_score >= 40 ? 'Moderate risks present. Review recommended.' : 
+                              'Low risk profile. Maintain current practices.'}
+                        </p>
+                    </div>
+
+                    <div class="score-card ${busFactorLevel}">
+                        <div class="score-header">
+                            <span class="score-label">Bus Factor</span>
+                            <span class="score-badge ${busFactorLevel}">${busFactorLevel}</span>
+                        </div>
+                        <div class="score-value ${busFactorLevel}">${busFactor.bus_factor || 'N/A'}</div>
+                        <p class="score-description">
+                            ${busFactor.bus_factor <= 1.5 ? 'Critical: Single point of failure. Knowledge heavily concentrated.' : 
+                              busFactor.bus_factor <= 3 ? 'Warning: Limited knowledge distribution. Cross-training needed.' : 
+                              'Good: Knowledge well distributed across team.'}
+                        </p>
+                    </div>
+
+                    <div class="score-card">
+                        <div class="score-header">
+                            <span class="score-label">Code Health</span>
+                        </div>
+                        <div class="score-value good">${report.entities?.total?.toLocaleString() || 0}</div>
+                        <p class="score-description">
+                            Entities analyzed: ${report.entities?.functions || 0} functions, ${report.entities?.classes || 0} classes
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Security Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="section-icon danger">🔒</div>
+                            Security Findings
+                        </div>
+                        <span class="section-count">${security.summary.total} total</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="risk-breakdown">
+                            <div class="risk-item">
+                                <div class="risk-number critical">${security.summary.critical}</div>
+                                <div class="risk-label">Critical</div>
+                            </div>
+                            <div class="risk-item">
+                                <div class="risk-number high">${security.summary.high}</div>
+                                <div class="risk-label">High</div>
+                            </div>
+                            <div class="risk-item">
+                                <div class="risk-number medium">${security.summary.medium}</div>
+                                <div class="risk-label">Medium</div>
+                            </div>
+                            <div class="risk-item">
+                                <div class="risk-number low">${security.summary.low}</div>
+                                <div class="risk-label">Low</div>
+                            </div>
+                        </div>
+
+                        ${security.top_findings?.length ? `
+                            <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-secondary);">Top Priority Findings</h3>
+                            ${security.top_findings.map(f => renderFinding(f)).join('')}
+                        ` : '<div class="empty-state"><p>No security findings detected.</p></div>'}
+                    </div>
+                </div>
+
+                <!-- Bus Factor Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="section-icon warning">🚌</div>
+                            Bus Factor Analysis
+                        </div>
+                        <span class="section-count">${busFactor.bus_factor || 'N/A'}</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="bus-factor-info">
+                            <div class="info-box">
+                                <h4>What This Means</h4>
+                                <p>
+                                    Your bus factor of <strong>${busFactor.bus_factor || 'N/A'}</strong> means that if 
+                                    ${busFactor.bus_factor <= 1.5 ? 'the primary contributor leaves, the project is at severe risk. Knowledge is too concentrated.' : 
+                                      busFactor.bus_factor <= 3 ? `${Math.ceil(busFactor.bus_factor)} people leave, the project would lose significant knowledge.` :
+                                      'several people leave, the project can still continue effectively.'}
+                                </p>
+                            </div>
+                            <div class="info-box">
+                                <h4>Recommendation</h4>
+                                <p>
+                                    ${busFactor.bus_factor <= 1.5 ? 
+                                      '<strong>Immediate action required:</strong> Implement code reviews, pair programming, and documentation. Cross-train team members on critical components.' : 
+                                      busFactor.bus_factor <= 3 ? 
+                                      '<strong>Improve knowledge sharing:</strong> Rotate responsibilities, document architecture decisions, and encourage team-wide code ownership.' :
+                                      '<strong>Maintain current practices:</strong> Your knowledge distribution is healthy. Continue documentation and onboarding processes.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trends Section -->
+                ${trends.data_points > 1 ? `
+                    <div class="section-card">
+                        <div class="section-header">
+                            <div class="section-title">
+                                <div class="section-icon info">📈</div>
+                                Trends Over Time
+                            </div>
+                            <span class="section-count">${trends.data_points} data points</span>
+                        </div>
+                        <div class="section-content">
+                            <div class="bus-factor-info">
+                                <div class="info-box">
+                                    <h4>Bus Factor Trend</h4>
+                                    <p>
+                                        ${trends.trends.bus_factor.direction === 'improving' ? '📈 Improving' : 
+                                          trends.trends.bus_factor.direction === 'worsening' ? '📉 Declining' : '➡️ Stable'}
+                                        ${trends.trends.bus_factor.change !== 0 ? `(change: ${trends.trends.bus_factor.change > 0 ? '+' : ''}${trends.trends.bus_factor.change.toFixed(1)})` : ''}
+                                    </p>
+                                </div>
+                                <div class="info-box">
+                                    <h4>Risk Score Trend</h4>
+                                    <p>
+                                        ${trends.trends.risk_score.direction === 'improving' ? '📉 Improving (lower is better)' : 
+                                          trends.trends.risk_score.direction === 'worsening' ? '📈 Increasing (worse)' : '➡️ Stable'}
+                                        ${trends.trends.risk_score.change !== 0 ? `(change: ${trends.trends.risk_score.change > 0 ? '+' : ''}${trends.trends.risk_score.change})` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function renderFinding(finding) {
+            const explanation = RISK_EXPLANATIONS[finding.rule_id] || RISK_EXPLANATIONS.default;
+            
+            return `
+                <div class="finding">
+                    <div class="finding-severity ${finding.severity}"></div>
+                    <div class="finding-content">
+                        <div class="finding-title">${finding.description}</div>
+                        <div class="finding-location">📁 ${finding.file_path}${finding.line_number ? `:${finding.line_number}` : ''}</div>
+                        ${finding.evidence ? `<div class="finding-evidence">${escapeHtml(finding.evidence)}</div>` : ''}
+                        <div class="finding-explanation">
+                            <strong>What:</strong> ${explanation.what}<br><br>
+                            <strong>Why it matters:</strong> ${explanation.why}<br><br>
+                            <strong>How to fix:</strong> ${explanation.fix}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function downloadPDF() {
+            alert('PDF export coming in v1.0!');
+        }
+
+        // Load report on page load
+        loadReport();
+    </script>
+</body>
+</html>
