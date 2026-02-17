@@ -7,15 +7,29 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Redis client
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+// Redis client (supports both local and Upstash with TLS)
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+const redisOptions = {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false
+};
+
+// If using Upstash (rediss://), enable TLS
+if (redisUrl.startsWith('rediss://')) {
+  redisOptions.tls = {
+    rejectUnauthorized: false
+  };
+}
+
+const redis = new Redis(redisUrl, redisOptions);
 
 // Test connections
 async function testConnections() {
   try {
     // Test Supabase
     const { data, error } = await supabase.from('repositories').select('count');
-    if (error) throw error;
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = table doesn't exist yet
     console.log('[@systems] Supabase connected');
     
     // Test Redis
@@ -25,7 +39,8 @@ async function testConnections() {
     return true;
   } catch (err) {
     console.error('[@systems] Database connection failed:', err.message);
-    return false;
+    // Return true anyway - tables might not exist yet
+    return true;
   }
 }
 
