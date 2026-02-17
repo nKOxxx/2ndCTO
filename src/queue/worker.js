@@ -1,6 +1,6 @@
 require('dotenv').config();
-const { repoQueue, analysisQueue } = require('./queue');
-const { ingestRepository } = require('./ingestion/clone');
+const { repoQueue, analysisQueue } = require('./index');
+const { ingestRepository } = require('../ingestion/clone');
 
 console.log('[@systems] 2ndCTO Worker starting...');
 
