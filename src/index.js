@@ -14,6 +14,7 @@ const { initSentry, sentryRequestHandler, sentryErrorHandler } = require('./conf
 const cleanupService = require('./services/cleanup');
 const AuthService = require('./services/auth');
 const { supabase } = require('./db');
+const { v4: uuidv4 } = require('uuid');
 
 // Initialize Sentry error tracking
 initSentry();
@@ -85,19 +86,35 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Security: Disable X-Powered-By
 app.disable('x-powered-by');
 
+// Request ID tracking (for debugging)
+app.use((req, res, next) => {
+  req.id = req.get('X-Request-ID') || uuidv4();
+  res.set('X-Request-ID', req.id);
+  next();
+});
+
 // Sentry: Request handler (must be first)
 app.use(sentryRequestHandler());
 
 // Request logging (sanitized)
 app.use((req, res, next) => {
   const { sanitizeLog } = require('./middleware/security');
+  const startTime = Date.now();
+  
   const logData = {
+    requestId: req.id,
     method: req.method,
     path: req.path,
     ip: req.ip,
     userAgent: req.get('user-agent')?.substring(0, 100)
   };
-  console.log(`[@systems] ${req.method} ${req.path} - ${sanitizeLog(logData)}`);
+  
+  // Log response time on finish
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    console.log(`[@systems] ${req.id} ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+  });
+  
   next();
 });
 
@@ -105,17 +122,25 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check (before rate limiting for monitoring)
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    service: '2ndCTO', 
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    security: {
-      auth: 'enabled',
-      rateLimiting: 'enabled',
-      https: process.env.NODE_ENV === 'production' ? 'enforced' : 'optional'
-    }
+app.get('/api/health', async (req, res) => {
+  const healthService = require('./services/health');
+  const basic = await healthService.getBasicHealth();
+  
+  res.status(basic.status === 'ok' ? 200 : 503).json({
+    ...basic,
+    requestId: req.id
+  });
+});
+
+// Detailed health check (for admins)
+app.get('/api/health/detailed', async (req, res) => {
+  const healthService = require('./services/health');
+  const detailed = await healthService.getFullHealth();
+  
+  res.status(detailed.status === 'healthy' ? 200 : 
+             detailed.status === 'degraded' ? 200 : 503).json({
+    ...detailed,
+    requestId: req.id
   });
 });
 

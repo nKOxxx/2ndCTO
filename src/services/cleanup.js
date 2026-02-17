@@ -61,9 +61,10 @@ class CleanupService {
         this.cleanupOldClones(),
         this.cleanupOldMetrics(),
         this.cleanupFailedJobs(),
-        this.cleanupOrphanedFiles()
+        this.cleanupOrphanedFiles(),
+        this.checkSecretRotation()
       ]);
-      
+
       console.log('[@systems] Cleanup completed');
     } catch (error) {
       console.error('[@systems] Cleanup error:', error.message);
@@ -259,6 +260,39 @@ class CleanupService {
       };
     } catch (error) {
       return { error: error.message };
+    }
+  }
+
+  /**
+   * Check if secrets need rotation (90 days)
+   */
+  async checkSecretRotation() {
+    try {
+      // Check GITHUB_TOKEN age (if stored with creation date)
+      const tokenAge = process.env.GITHUB_TOKEN_CREATED_AT;
+      if (tokenAge) {
+        const days = Math.floor((Date.now() - new Date(tokenAge)) / (1000 * 60 * 60 * 24));
+        if (days > 75 && days < 90) {
+          console.warn(`[@security] WARNING: GitHub token expires in ${90 - days} days. Rotate soon!`);
+        } else if (days >= 90) {
+          console.error(`[@security] CRITICAL: GitHub token is ${days} days old. ROTATE IMMEDIATELY!`);
+        }
+      }
+
+      // Check API keys older than 90 days
+      const { data: oldKeys, error } = await supabase
+        .from('api_keys')
+        .select('id, name, created_at, user_id')
+        .lt('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      if (oldKeys && oldKeys.length > 0) {
+        console.warn(`[@security] ${oldKeys.length} API keys are >90 days old and should be rotated`);
+      }
+    } catch (error) {
+      console.error('[@security] Secret rotation check error:', error.message);
     }
   }
 }
