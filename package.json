@@ -12,6 +12,7 @@
     "start:all": "npm run dev & npm run worker"
   },
   "dependencies": {
+    "@sentry/node": "^10.39.0",
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.2",
     "bull": "^4.12.0",

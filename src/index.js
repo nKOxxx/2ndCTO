@@ -9,7 +9,14 @@ const routes = require('./api/routes');
 const { testConnections } = require('./db');
 const { securityHeaders } = require('./middleware/security');
 const { apiLimiter } = require('./middleware/rate-limit');
+const { requireAuth, optionalAuth } = require('./middleware/auth');
+const { initSentry, sentryRequestHandler, sentryErrorHandler } = require('./config/sentry');
 const cleanupService = require('./services/cleanup');
+const AuthService = require('./services/auth');
+const { supabase } = require('./db');
+
+// Initialize Sentry error tracking
+initSentry();
 
 const app = express();
 const httpServer = createServer(app);
@@ -78,6 +85,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Security: Disable X-Powered-By
 app.disable('x-powered-by');
 
+// Sentry: Request handler (must be first)
+app.use(sentryRequestHandler());
+
 // Request logging (sanitized)
 app.use((req, res, next) => {
   const { sanitizeLog } = require('./middleware/security');
@@ -100,9 +110,67 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     service: '2ndCTO', 
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    security: {
+      auth: 'enabled',
+      rateLimiting: 'enabled',
+      https: process.env.NODE_ENV === 'production' ? 'enforced' : 'optional'
+    }
   });
 });
+
+// Auth routes
+app.post('/api/auth/key', async (req, res) => {
+  try {
+    // For demo: create a demo user if not exists
+    const { data: user } = await supabase
+      .from('users')
+      .insert({ username: 'demo', email: 'demo@2ndcto.com' })
+      .select()
+      .single();
+    
+    const key = await AuthService.createApiKey(user.id, req.body.name || 'Default');
+    res.json({
+      success: true,
+      message: 'API key created. Save this key - it will only be shown once!',
+      apiKey: key.key, // Full key shown once
+      id: key.id,
+      created_at: key.created_at
+    });
+  } catch (error) {
+    console.error('[@auth] Key creation failed:', error.message);
+    res.status(500).json({ error: 'Failed to create API key' });
+  }
+});
+
+app.get('/api/auth/keys', requireAuth, async (req, res) => {
+  try {
+    const keys = await AuthService.listApiKeys(req.user.id);
+    res.json({ keys });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/auth/keys/:id', requireAuth, async (req, res) => {
+  try {
+    await AuthService.revokeApiKey(req.params.id, req.user.id);
+    res.json({ success: true, message: 'API key revoked' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// HTTPS enforcement in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
 
 // Routes
 app.use('/api', routes);
@@ -116,6 +184,9 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
+
+// Sentry: Error handler (must be before other error handlers)
+app.use(sentryErrorHandler());
 
 // Security: Global error handler (sanitize errors)
 app.use((err, req, res, next) => {
