@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2ndCTO - Know Your Codebase Risk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-tertiary: #484f58;
+            --accent: #00d4ff;
+            --accent-hover: #33ddff;
+            --success: #238636;
+            --warning: #f0883e;
+            --danger: #da3633;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* Navigation */
+        .navbar {
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 20px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent) 0%, #0099cc 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+        
+        /* Hero */
+        .hero {
+            padding: 120px 32px;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        
+        .hero-badge span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .hero h1 {
+            font-size: 72px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 24px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 64px;
+        }
+        
+        .trust-signals {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+        
+        .trust-signals span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* Section */
+        .section {
+            padding: 96px 32px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        
+        .section-header h2 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .section-header p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* How it Works */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+        
+        .step {
+            text-align: center;
+            padding: 40px 32px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0 auto 24px;
+        }
+        
+        .step h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .step p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        /* Features */
+        .features {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+        
+        .feature {
+            padding: 32px;
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .feature h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .feature p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        /* FAQ */
+        .faq-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 24px 0;
+        }
+        
+        .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .faq-question:hover {
+            color: var(--accent);
+        }
+        
+        .faq-answer {
+            color: var(--text-secondary);
+            margin-top: 16px;
+            line-height: 1.8;
+            display: none;
+        }
+        
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+        
+        .faq-toggle {
+            color: var(--text-tertiary);
+            font-size: 24px;
+            transition: transform 0.3s;
+        }
+        
+        .faq-item.active .faq-toggle {
+            transform: rotate(45deg);
+        }
+        
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            text-align: center;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .cta h2 {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+        
+        .cta p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+        
+        /* Footer */
+        .footer {
+            padding: 64px 32px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .footer-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 64px;
+        }
+        
+        .footer-brand p {
+            color: var(--text-secondary);
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        
+        .footer-links h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        
+        .footer-links a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 40px; }
+            .hero p { font-size: 18px; }
+            .steps { grid-template-columns: 1fr; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .footer-content { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">🚌</div>
+                2ndCTO
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#faq">FAQ</a>
+                <a href="/dashboard.html" class="btn btn-secondary">Dashboard</a>
+                <a href="#analyze" class="btn btn-primary">Analyze Repo</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-badge">
+            🚀 Now with Bus Factor Detection
+            <span>NEW</span>
+        </div>
+        <h1>Know Your Codebase Risk</h1>
+        <p>Analyze repository health, detect knowledge silos, and measure bus factor before it's too late.</p>
+        <div class="hero-cta">
+            <a href="#analyze" class="btn btn-primary btn-large">
+                🔍 Analyze Your Repository
+            </a>
+            <a href="https://github.com/nKOxxx/2ndCTO" target="_blank" class="btn btn-secondary btn-large">
+                View on GitHub
+            </a>
+        </div>
+        <div class="trust-signals">
+            <span>✓ Open Source</span>
+            <span>✓ Free for Public Repos</span>
+            <span>✓ No Code Storage</span>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section" id="how-it-works">
+        <div class="section-header">
+            <h2>How It Works</h2>
+            <p>Get insights into your codebase health in three simple steps</p>
+        </div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Connect Repository</h3>
+                <p>Enter any public GitHub repository URL. No signup required for public repos.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>We Analyze</h3>
+                <p>Our engine scans code structure, git history, security risks, and dependencies.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Get Report</h3>
+                <p>Receive a comprehensive report with actionable insights and risk scores.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="section">
+            <div class="section-header">
+                <h2>What You Get</h2>
+                <p>Comprehensive analysis for engineering leaders</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-icon">🚌</div>
+                    <h3>Bus Factor Analysis</h3>
+                    <p>Identify knowledge silos and single points of failure. Know if losing one team member would cripple your project.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Security Scanning</h3>
+                    <p>Detect hardcoded secrets, vulnerable dependencies, and security anti-patterns automatically.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <h3>Trend Tracking</h3>
+                    <p>Monitor how your codebase health evolves over time. Catch degradation before it becomes critical.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🏗️</div>
+                    <h3>Architecture Insights</h3>
+                    <p>Understand code structure, complexity hotspots, and component relationships at a glance.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Legacy Modernization</h3>
+                    <p>Coming soon: Convert outdated code to modern standards. ES5 → ES2022, Python 2 → 3, and more.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Risk Scoring</h3>
+                    <p>Get a single, actionable risk score based on security, maintainability, and team distribution.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq">
+        <div class="section-header">
+            <h2>Frequently Asked Questions</h2>
+            <p>Everything you need to know about 2ndCTO</p>
+        </div>
+        <div class="faq-container">
+            <div class="faq-item">
+                <div class="faq-question">
+                    What is Bus Factor?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Bus Factor is the number of people that can be "hit by a bus" (leave the project) before it fails. A bus factor of 1 means one person holds critical knowledge. We analyze git history to calculate this and identify knowledge silos.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Is my code safe with 2ndCTO?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Absolutely. We never store your actual code. We only analyze metadata: file paths, git history, and dependency manifests. For public repos, we don't even need permissions. Your intellectual property stays on your servers.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    How accurate is the risk score?
+                <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Our risk score combines multiple factors: security findings (weighted by severity), bus factor, code complexity, and dependency freshness. It's calibrated against known vulnerable repositories and continuously improved.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    What languages are supported?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Currently: JavaScript, TypeScript, Python, Go, Java, Ruby, PHP, Rust, and C/C++. Security scanning works for all languages. Bus factor analysis is language-agnostic (uses git history). We're adding more languages monthly.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Can I use this for private repositories?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Yes! Connect your GitHub account and analyze private repos. We use OAuth with minimal permissions (read-only access). You can revoke access anytime. We never store your code or tokens longer than necessary.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    What's the difference from Snyk or SonarQube?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Snyk and SonarQube focus on security and code quality. 2ndCTO focuses on team resilience: bus factor, knowledge distribution, and legacy modernization. We complement these tools, not replace them. Plus, we're open source.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    Is this free?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Public repositories: Completely free, unlimited analyses. Private repositories: Free tier includes 5 repos. Pro tier coming soon with unlimited private repos, team collaboration, and advanced reports.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    How do I modernize legacy code?
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    Coming in v1.0! Our modernization engine will convert ES5 → ES2022, callbacks → async/await, Python 2 → 3, and more. You'll get a diff view showing before/after with automated tests to validate correctness.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta" id="analyze">
+        <div class="section">
+            <h2>Ready to Analyze Your Codebase?</h2>
+            <p>Get your first report in under 2 minutes. No signup required for public repos.</p>
+            <a href="/dashboard.html" class="btn btn-primary btn-large">
+                🚀 Start Analyzing
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <a href="/" class="logo">
+                    <div class="logo-icon">🚌</div>
+                    2ndCTO
+                </a>
+                <p>Know your codebase risk. Protect your engineering investment.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <a href="#features">Features</a>
+                <a href="/dashboard.html">Dashboard</a>
+                <a href="#">Pricing</a>
+                <a href="#">Changelog</a>
+            </div>
+            <div class="footer-links">
+                <h4>Resources</h4>
+                <a href="#">Documentation</a>
+                <a href="#">API Reference</a>
+                <a href="#faq">FAQ</a>
+                <a href="#">Blog</a>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <a href="https://github.com/nKOxxx/2ndCTO">GitHub</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Privacy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(q => {
+            q.addEventListener('click', () => {
+                q.parentElement.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>
