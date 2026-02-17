@@ -25,7 +25,7 @@ class SecurityScanner {
       {
         id: 'SQL_INJECTION',
         name: 'Potential SQL Injection',
-        pattern: /(query|execute|exec)\s*\(\s*[`"'].*\$\{|query|execute|exec)\s*\(\s*[^)]*\+./i,
+        pattern: /(query|execute|exec)\s*\(\s*[`"'].*\$\{|query|execute|exec\s*\(\s*[^)]*\+/i,
         severity: 'high',
         category: 'vulnerability'
       },

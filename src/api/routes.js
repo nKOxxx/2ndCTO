@@ -222,6 +222,9 @@ router.get('/repos/:id/report', async (req, res) => {
       .select('type')
       .eq('repo_id', req.params.id);
     
+    // Handle missing entities table/data
+    const safeEntities = entities || [];
+    
     // Build report
     const report = {
       repo: {
@@ -253,9 +256,9 @@ router.get('/repos/:id/report', async (req, res) => {
           .slice(0, 10)
       },
       entities: {
-        total: entities.length,
-        functions: entities.filter(e => e.type === 'function').length,
-        classes: entities.filter(e => e.type === 'class').length
+        total: safeEntities.length,
+        functions: safeEntities.filter(e => e.type === 'function').length,
+        classes: safeEntities.filter(e => e.type === 'class').length
       }
     };
     
