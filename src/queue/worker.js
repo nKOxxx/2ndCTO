@@ -1,6 +1,9 @@
 require('dotenv').config();
 const { repoQueue, analysisQueue } = require('./index');
 const { ingestRepository } = require('../ingestion/clone');
+const CodeAnalyzer = require('../analysis');
+
+const analyzer = new CodeAnalyzer();
 
 console.log('[@systems] 2ndCTO Worker starting...');
 
@@ -12,6 +15,14 @@ repoQueue.process(async (job) => {
   try {
     const result = await ingestRepository(repoId);
     console.log(`[@systems] Ingestion job ${job.id} completed`);
+    
+    // Queue analysis job after successful ingestion
+    await analysisQueue.add({ repoId }, {
+      attempts: 2,
+      timeout: 600000 // 10 minutes
+    });
+    console.log(`[@systems] Queued analysis for repo ${repoId}`);
+    
     return result;
   } catch (error) {
     console.error(`[@systems] Ingestion job ${job.id} failed:`, error.message);
@@ -25,9 +36,9 @@ analysisQueue.process(async (job) => {
   const { repoId } = job.data;
   
   try {
-    // Week 2: Add security scanning, code quality analysis
-    console.log(`[@systems] Analysis job ${job.id} placeholder (Week 2)`);
-    return { success: true, repoId };
+    const result = await analyzer.analyzeRepo(repoId);
+    console.log(`[@systems] Analysis job ${job.id} completed:`, result.success ? 'success' : 'failed');
+    return result;
   } catch (error) {
     console.error(`[@systems] Analysis job ${job.id} failed:`, error.message);
     throw error;
