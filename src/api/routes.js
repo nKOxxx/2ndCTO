@@ -311,4 +311,128 @@ router.get('/repos/:id/bus-factor', async (req, res) => {
   }
 });
 
+// WEEK 3: Trend Analysis for a repo
+router.get('/repos/:id/trends', async (req, res) => {
+  try {
+    const repo = await getRepoById(req.params.id);
+    
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+    
+    const { days = 30 } = req.query;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: metrics, error } = await supabase
+      .from('repo_metrics')
+      .select('*')
+      .eq('repo_id', req.params.id)
+      .gte('measured_at', since)
+      .order('measured_at', { ascending: true });
+    
+    if (error) throw error;
+    
+    if (!metrics || metrics.length === 0) {
+      return res.json({
+        repo_id: req.params.id,
+        owner: repo.owner,
+        name: repo.name,
+        data_points: 0,
+        message: 'No trend data available. Analyze repo multiple times to build trends.'
+      });
+    }
+    
+    // Calculate trend direction
+    const first = metrics[0];
+    const last = metrics[metrics.length - 1];
+    
+    const busFactorTrend = last.bus_factor - first.bus_factor;
+    const riskScoreTrend = last.risk_score - first.risk_score;
+    
+    res.json({
+      repo_id: req.params.id,
+      owner: repo.owner,
+      name: repo.name,
+      period_days: parseInt(days),
+      data_points: metrics.length,
+      latest: {
+        measured_at: last.measured_at,
+        bus_factor: last.bus_factor,
+        risk_score: last.risk_score,
+        total_findings: last.total_findings,
+        critical_findings: last.critical_findings
+      },
+      trends: {
+        bus_factor: {
+          change: busFactorTrend,
+          direction: busFactorTrend > 0 ? 'improving' : busFactorTrend < 0 ? 'worsening' : 'stable'
+        },
+        risk_score: {
+          change: riskScoreTrend,
+          direction: riskScoreTrend < 0 ? 'improving' : riskScoreTrend > 0 ? 'worsening' : 'stable'
+        }
+      },
+      history: metrics.map(m => ({
+        measured_at: m.measured_at,
+        bus_factor: m.bus_factor,
+        risk_score: m.risk_score,
+        total_findings: m.total_findings,
+        critical_findings: m.critical_findings
+      }))
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Get trends failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// WEEK 3: Global trends across all repos
+router.get('/trends', async (req, res) => {
+  try {
+    const { data: latestMetrics, error } = await supabase
+      .from('repo_metrics')
+      .select('*, repositories(owner, name)')
+      .order('measured_at', { ascending: false })
+      .limit(100);
+    
+    if (error) throw error;
+    
+    if (!latestMetrics || latestMetrics.length === 0) {
+      return res.json({
+        repos_analyzed: 0,
+        message: 'No trend data available.'
+      });
+    }
+    
+    // Aggregate stats
+    const avgBusFactor = latestMetrics.reduce((sum, m) => sum + (m.bus_factor || 0), 0) / latestMetrics.length;
+    const avgRiskScore = latestMetrics.reduce((sum, m) => sum + (m.risk_score || 0), 0) / latestMetrics.length;
+    const criticalRepos = latestMetrics.filter(m => m.bus_factor <= 1.5).length;
+    
+    res.json({
+      repos_analyzed: latestMetrics.length,
+      summary: {
+        avg_bus_factor: Math.round(avgBusFactor * 10) / 10,
+        avg_risk_score: Math.round(avgRiskScore),
+        critical_bus_factor_repos: criticalRepos,
+        total_findings: latestMetrics.reduce((sum, m) => sum + (m.total_findings || 0), 0),
+        critical_findings: latestMetrics.reduce((sum, m) => sum + (m.critical_findings || 0), 0)
+      },
+      repos: latestMetrics.map(m => ({
+        id: m.repo_id,
+        owner: m.repositories?.owner,
+        name: m.repositories?.name,
+        bus_factor: m.bus_factor,
+        risk_score: m.risk_score,
+        measured_at: m.measured_at
+      }))
+    });
+    
+  } catch (error) {
+    console.error('[@systems] Get global trends failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

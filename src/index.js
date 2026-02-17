@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const routes = require('./api/routes');
 const { testConnections } = require('./db');
 
@@ -13,8 +14,16 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+// Static files (dashboard)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Routes
 app.use('/api', routes);
+
+// Dashboard redirect
+app.get('/', (req, res) => {
+  res.redirect('/dashboard.html');
+});
 
 // Error handler
 app.use((err, req, res, next) => {

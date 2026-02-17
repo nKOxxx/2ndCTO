@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2ndCTO - Trend Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { 
+            color: #00d4ff; 
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #2a2a3e;
+        }
+        .stat-label { 
+            font-size: 12px; 
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .stat-value { 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #fff;
+        }
+        .stat-value.critical { color: #ff4757; }
+        .stat-value.warning { color: #ffa502; }
+        .stat-value.good { color: #2ed573; }
+        
+        .section {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a3e;
+        }
+        .section h2 {
+            color: #00d4ff;
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #2a2a3e;
+        }
+        th {
+            color: #888;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        tr:hover { background: rgba(0, 212, 255, 0.05); }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-critical { background: #ff4757; color: #fff; }
+        .badge-high { background: #ffa502; color: #000; }
+        .badge-medium { background: #ffd700; color: #000; }
+        .badge-low { background: #2ed573; color: #000; }
+        
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+        .trend-up { color: #ff4757; }
+        .trend-down { color: #2ed573; }
+        .trend-stable { color: #888; }
+        
+        .refresh-btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .refresh-btn:hover { background: #33ddff; }
+        
+        .loading { text-align: center; padding: 40px; color: #888; }
+        .error { background: #ff4757; color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚌 2ndCTO Trend Dashboard</h1>
+        <p class="subtitle">Bus Factor & Risk Analysis</p>
+        
+        <button class="refresh-btn" onclick="loadData()">↻ Refresh Data</button>
+        
+        <div id="content">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function loadData() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                const [trends, repos] = await Promise.all([
+                    fetch(`${API_BASE}/api/trends`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/repos`).then(r => r.json())
+                ]);
+                
+                renderDashboard(trends, repos);
+            } catch (error) {
+                content.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+        
+        function renderDashboard(trends, repos) {
+            const content = document.getElementById('content');
+            
+            if (!trends.repos_analyzed) {
+                content.innerHTML = '<div class="section"><p>No analysis data yet. Analyze some repositories first.</p></div>';
+                return;
+            }
+            
+            const summary = trends.summary;
+            const busFactorStatus = summary.avg_bus_factor <= 1.5 ? 'critical' : summary.avg_bus_factor <= 3 ? 'warning' : 'good';
+            const riskStatus = summary.avg_risk_score >= 70 ? 'critical' : summary.avg_risk_score >= 40 ? 'warning' : 'good';
+            
+            content.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Repos Analyzed</div>
+                        <div class="stat-value">${trends.repos_analyzed}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Bus Factor</div>
+                        <div class="stat-value ${busFactorStatus}">${summary.avg_bus_factor}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Risk Score</div>
+                        <div class="stat-value ${riskStatus}">${summary.avg_risk_score}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Critical Repos</div>
+                        <div class="stat-value ${summary.critical_bus_factor_repos > 0 ? 'critical' : 'good'}">${summary.critical_bus_factor_repos}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Findings</div>
+                        <div class="stat-value">${summary.total_findings}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Critical Findings</div>
+                        <div class="stat-value ${summary.critical_findings > 0 ? 'critical' : 'good'}">${summary.critical_findings}</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>📊 Repository Analysis</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Repository</th>
+                                <th>Bus Factor</th>
+                                <th>Risk Score</th>
+                                <th>Status</th>
+                                <th>Last Analyzed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${trends.repos.map(repo => `
+                                <tr onclick="viewRepo('${repo.id}')" style="cursor: pointer;">
+                                    <td><strong>${repo.owner}/${repo.name}</strong></td>
+                                    <td>
+                                        <span class="stat-value ${repo.bus_factor <= 1.5 ? 'critical' : repo.bus_factor <= 3 ? 'warning' : 'good'}" style="font-size: 18px;">
+                                            ${repo.bus_factor || 'N/A'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="stat-value ${repo.risk_score >= 70 ? 'critical' : repo.risk_score >= 40 ? 'warning' : 'good'}" style="font-size: 18px;">
+                                            ${repo.risk_score || 'N/A'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${getStatusBadge(repo.bus_factor, repo.risk_score)}
+                                    </td>
+                                    <td>${formatDate(repo.measured_at)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function getStatusBadge(busFactor, riskScore) {
+            if (!busFactor) return '<span class="badge badge-medium">Not Analyzed</span>';
+            if (busFactor <= 1.5 || riskScore >= 80) return '<span class="badge badge-critical">CRITICAL</span>';
+            if (busFactor <= 2.5 || riskScore >= 50) return '<span class="badge badge-high">HIGH RISK</span>';
+            if (busFactor <= 4) return '<span class="badge badge-medium">MEDIUM</span>';
+            return '<span class="badge badge-low">LOW RISK</span>';
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return 'Never';
+            const date = new Date(dateStr);
+            return date.toLocaleString();
+        }
+        
+        function viewRepo(repoId) {
+            window.open(`/api/repos/${repoId}/report`, '_blank');
+        }
+        
+        // Load on page load
+        loadData();
+        
+        // Auto-refresh every 60 seconds
+        setInterval(loadData, 60000);
+    </script>
+</body>
+</html>
