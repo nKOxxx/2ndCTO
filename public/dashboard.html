@@ -4,12 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2ndCTO - Trend Dashboard</title>
+    <link rel="stylesheet" href="/styles/ui-components.css">
     <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-tertiary: #484f58;
+            --accent: #00d4ff;
+            --success: #238636;
+            --warning: #f0883e;
+            --danger: #da3633;
+            --info: #58a6ff;
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0f;
-            color: #e0e0e0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
@@ -130,6 +146,7 @@
 
     <script>
         const API_BASE = '';
+        let currentTrends = null;
         
         function debug(msg) {
             const d = document.getElementById('debug');
@@ -139,44 +156,99 @@
         
         async function loadData() {
             const content = document.getElementById('content');
-            const debugEl = document.getElementById('debug');
-            debugEl.textContent = '';
-            content.innerHTML = '<div class="loading">Loading...</div>';
+            
+            // Show skeleton loading instead of "Loading..."
+            content.innerHTML = `
+                <div class="stats-grid">
+                    ${createSkeletonCard('stat')}
+                    ${createSkeletonCard('stat')}
+                    ${createSkeletonCard('stat')}
+                    ${createSkeletonCard('stat')}
+                    ${createSkeletonCard('stat')}
+                    ${createSkeletonCard('stat')}
+                </div>
+                <div class="section">
+                    <h2>📊 Repository Analysis</h2>
+                    ${createSkeletonCard('table')}
+                </div>
+            `;
             
             try {
-                debug('Fetching trends...');
-                const trendsRes = await fetch('/api/trends');
-                debug('Trends status: ' + trendsRes.status);
-                if (!trendsRes.ok) throw new Error('Trends API: ' + trendsRes.status);
+                const [trendsRes, reposRes] = await Promise.all([
+                    fetch('/api/trends'),
+                    fetch('/api/repos')
+                ]);
+                
+                if (!trendsRes.ok) {
+                    const errorData = await trendsRes.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${trendsRes.status}`);
+                }
+                
+                if (!reposRes.ok) {
+                    const errorData = await reposRes.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${reposRes.status}`);
+                }
+                
                 const trends = await trendsRes.json();
-                debug('Trends: ' + JSON.stringify(trends).slice(0, 200));
-                
-                debug('Fetching repos...');
-                const reposRes = await fetch('/api/repos');
-                debug('Repos status: ' + reposRes.status);
-                if (!reposRes.ok) throw new Error('Repos API: ' + reposRes.status);
                 const repos = await reposRes.json();
-                debug('Repos count: ' + (repos.repos ? repos.repos.length : repos.length));
                 
-                debug('Rendering...');
                 renderDashboard(trends, repos);
-                debug('Done!');
+                
+                // Show success toast on first load
+                if (!window.hasLoaded) {
+                    showToast({
+                        type: 'success',
+                        title: 'Dashboard Loaded',
+                        message: `Showing ${trends.repos_analyzed} analyzed repositories`,
+                        duration: 3000
+                    });
+                    window.hasLoaded = true;
+                }
+                
             } catch (error) {
-                debug('ERROR: ' + error.message);
-                content.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+                console.error('Dashboard load error:', error);
+                
+                content.innerHTML = createErrorState({
+                    title: 'Failed to Load Dashboard',
+                    message: error.message.includes('fetch') 
+                        ? 'Cannot connect to server. Please check your connection.'
+                        : error.message,
+                    error: { code: 'LOAD_ERROR', message: error.message },
+                    retryAction: 'loadData()',
+                    docsLink: 'https://github.com/nKOxxx/2ndCTO#troubleshooting'
+                });
+                
+                showToast({
+                    type: 'error',
+                    title: 'Load Failed',
+                    message: error.message,
+                    duration: 5000
+                });
             }
         }
         
         function renderDashboard(trends, reposData) {
             const content = document.getElementById('content');
             
+            // Store trends for viewRepo function
+            currentTrends = trends;
+            
             // Handle repos response structure
             const reposList = reposData.repos || reposData;
             
-            console.log('Rendering with:', { trends, reposData, reposList });
-            
-            if (!trends.repos_analyzed) {
-                content.innerHTML = '<div class="section"><p>No analysis data yet. Analyze some repositories first.</p></div>';
+            // Show empty state if no data
+            if (!trends.repos_analyzed || trends.repos_analyzed === 0) {
+                content.innerHTML = createEmptyState({
+                    icon: '🔍',
+                    title: 'No Repositories Analyzed Yet',
+                    message: 'Start by analyzing a GitHub repository to see security insights, bus factor, and risk scores.',
+                    actionText: '➕ Analyze Your First Repo',
+                    actionHref: '/#analyze',
+                    secondaryAction: {
+                        text: '📖 View Documentation',
+                        href: 'https://github.com/nKOxxx/2ndCTO#readme'
+                    }
+                });
                 return;
             }
             
@@ -246,6 +318,13 @@
                             `).join('')}
                         </tbody>
                     </table>
+                    ${reposList.length === 0 ? createEmptyState({
+                        icon: '📁',
+                        title: 'No Repositories Added',
+                        message: 'Add a GitHub repository to get started with security analysis.',
+                        actionText: 'Add Repository',
+                        actionHref: '/#analyze'
+                    }) : ''}
                 </div>
             `;
         }
@@ -265,8 +344,15 @@
         }
         
         function viewRepo(repoId) {
-            const repo = trends.repos.find(r => r.id === repoId);
+            const repo = currentTrends?.repos?.find(r => r.id === repoId);
             const repoName = repo ? `${repo.owner}/${repo.name}` : 'Repository';
+            
+            showToast({
+                type: 'info',
+                title: 'Opening Repository',
+                message: `Loading analysis for ${repoName}...`,
+                duration: 2000
+            });
             
             if (repo && repo.status === 'completed') {
                 window.open(`/report.html?id=${repoId}`, '_blank');
@@ -281,5 +367,8 @@
         // Auto-refresh every 60 seconds
         setInterval(loadData, 60000);
     </script>
+    
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 </body>
 </html>
