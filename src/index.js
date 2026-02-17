@@ -125,9 +125,10 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.get('/api/health', async (req, res) => {
   const healthService = require('./services/health');
   const basic = await healthService.getBasicHealth();
-  
+
   res.status(basic.status === 'ok' ? 200 : 503).json({
     ...basic,
+    version: '1.1.0',
     requestId: req.id
   });
 });
