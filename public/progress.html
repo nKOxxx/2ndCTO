@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyzing Repository - 2ndCTO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent: #00d4ff;
+            --success: #238636;
+            --warning: #f0883e;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        .progress-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        
+        .progress-bar-container {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent) 0%, #00ff88 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .progress-percentage {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .progress-status {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .log-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .log-entry {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        
+        .log-entry.success { color: var(--success); }
+        .log-entry.warning { color: var(--warning); }
+        .log-entry.info { color: var(--accent); }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .completion-message {
+            text-align: center;
+            padding: 32px;
+            display: none;
+        }
+        
+        .completion-message.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: #000;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 16px;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <img src="/logo.png" alt="2ndCTO">
+            </div>
+            <h1>Analyzing Repository</h1>
+            <p class="subtitle" id="repoName">Loading...</p>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-info">
+                <span class="progress-percentage" id="progressText">0%</span>
+                <span class="progress-status" id="statusText">Initializing...</span>
+            </div>
+        </div>
+        
+        <div class="log-container" id="logContainer">
+            <div class="log-entry info">[@systems] Starting analysis...</div>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-item">
+                <div class="stat-value" id="filesCount">0</div>
+                <div class="stat-label">Files</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="entitiesCount">0</div>
+                <div class="stat-label">Entities</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="findingsCount">0</div>
+                <div class="stat-label">Findings</div>
+            </div>
+        </div>
+        
+        <div class="completion-message" id="completionMessage">
+            <h2>✅ Analysis Complete!</h2>
+            <p style="color: var(--text-secondary); margin: 16px 0;">Your repository report is ready.</p>
+            <a href="#" class="btn" id="viewReportBtn">View Report →</a>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const repoId = urlParams.get('id');
+        const repoName = urlParams.get('name') || 'Repository';
+        
+        document.getElementById('repoName').textContent = repoName;
+        
+        const socket = io();
+        const logContainer = document.getElementById('logContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusText = document.getElementById('statusText');
+        
+        let stats = { files: 0, entities: 0, findings: 0 };
+        
+        // Subscribe to repo updates
+        socket.emit('subscribe', repoId);
+        
+        // Simulated progress (in production: real backend events)
+        const stages = [
+            { message: 'Cloning repository...', progress: 10, delay: 1000 },
+            { message: 'Analyzing file structure...', progress: 25, delay: 1500 },
+            { message: 'Scanning for security issues...', progress: 50, delay: 2000 },
+            { message: 'Extracting code entities...', progress: 70, delay: 1500 },
+            { message: 'Calculating bus factor...', progress: 85, delay: 1000 },
+            { message: 'Generating AI insights...', progress: 95, delay: 1500 },
+            { message: 'Finalizing report...', progress: 100, delay: 500 }
+        ];
+        
+        let currentStage = 0;
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[@systems] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function updateProgress(progress, status) {
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${progress}%`;
+            statusText.textContent = status;
+        }
+        
+        function updateStats() {
+            document.getElementById('filesCount').textContent = stats.files;
+            document.getElementById('entitiesCount').textContent = stats.entities;
+            document.getElementById('findingsCount').textContent = stats.findings;
+        }
+        
+        function runStage() {
+            if (currentStage >= stages.length) {
+                // Complete
+                addLog('Analysis complete!', 'success');
+                document.getElementById('completionMessage').classList.add('show');
+                document.getElementById('viewReportBtn').href = `/report.html?id=${repoId}`;
+                return;
+            }
+            
+            const stage = stages[currentStage];
+            updateProgress(stage.progress, stage.message);
+            addLog(stage.message);
+            
+            // Simulate discoveries
+            if (currentStage === 2) {
+                stats.files = 143;
+                setTimeout(() => addLog(`Found ${stats.files} code files`, 'success'), 500);
+            }
+            if (currentStage === 3) {
+                stats.findings = 12;
+                setTimeout(() => addLog(`Detected ${stats.findings} security issues`, 'warning'), 500);
+            }
+            if (currentStage === 4) {
+                stats.entities = 1247;
+                setTimeout(() => addLog(`Extracted ${stats.entities} code entities`, 'success'), 500);
+            }
+            
+            updateStats();
+            
+            setTimeout(() => {
+                currentStage++;
+                runStage();
+            }, stage.delay);
+        }
+        
+        // Start the simulation
+        runStage();
+        
+        // In production: Listen for real events
+        socket.on('analysis:progress', (data) => {
+            updateProgress(data.progress, data.status);
+            addLog(data.message);
+        });
+        
+        socket.on('analysis:complete', () => {
+            addLog('Analysis complete!', 'success');
+            document.getElementById('completionMessage').classList.add('show');
+        });
+    </script>
+</body>
+</html>

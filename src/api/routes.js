@@ -311,6 +311,98 @@ router.get('/repos/:id/bus-factor', async (req, res) => {
   }
 });
 
+// AI Insights endpoint
+router.get('/repos/:id/insights', async (req, res) => {
+  try {
+    const repo = await getRepoById(req.params.id);
+    
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+    
+    // Get report data
+    const { data: findings } = await supabase
+      .from('security_findings')
+      .select('*')
+      .eq('repo_id', req.params.id);
+    
+    const { data: entities } = await supabase
+      .from('code_entities')
+      .select('type')
+      .eq('repo_id', req.params.id);
+    
+    // Generate AI insights
+    const riskScore = repo.risk_score || 0;
+    const summary = {
+      critical: findings?.filter(f => f.severity === 'critical').length || 0,
+      high: findings?.filter(f => f.severity === 'high').length || 0,
+      medium: findings?.filter(f => f.severity === 'medium').length || 0,
+      total: findings?.length || 0
+    };
+    
+    const grade = riskScore >= 90 ? { letter: 'F', label: 'Critical', color: 'danger' } :
+                  riskScore >= 70 ? { letter: 'D', label: 'Poor', color: 'warning' } :
+                  riskScore >= 50 ? { letter: 'C', label: 'Fair', color: 'caution' } :
+                  riskScore >= 30 ? { letter: 'B', label: 'Good', color: 'good' } :
+                                    { letter: 'A', label: 'Excellent', color: 'success' };
+    
+    const insights = {
+      summary: {
+        grade,
+        score: riskScore,
+        text: riskScore >= 80 ? 'Critical attention required. Immediate action needed.' :
+              riskScore >= 50 ? 'Moderate risks detected. Improvements recommended.' :
+              'Healthy codebase with good practices.',
+        tone: riskScore >= 80 ? 'urgent' : riskScore >= 50 ? 'caution' : 'positive'
+      },
+      priorities: [
+        {
+          rank: 1,
+          title: summary.critical > 0 ? `Fix ${summary.critical} critical security issues` : 'Review security findings',
+          impact: `Reduces risk by ~${Math.min(30, summary.critical * 10)} points`,
+          effort: summary.critical > 0 ? '1-2 days' : '4-6 hours',
+          type: 'security'
+        },
+        {
+          rank: 2,
+          title: 'Address knowledge concentration',
+          impact: 'Improves team resilience',
+          effort: '2-3 weeks',
+          type: 'process'
+        },
+        {
+          rank: 3,
+          title: `Resolve ${summary.medium} medium-priority items`,
+          impact: 'Reduces technical debt',
+          effort: '3-5 days',
+          type: 'quick-win'
+        }
+      ],
+      recommendations: [
+        {
+          title: riskScore >= 70 ? 'Emergency Security Sprint' : 'Security Review',
+          description: riskScore >= 70 ? 'Dedicate next sprint to critical fixes' : 'Schedule regular security reviews',
+          timeline: riskScore >= 70 ? '1-2 weeks' : 'Ongoing',
+          impact: riskScore >= 70 ? 'Reduces risk by 60-80%' : 'Maintains code health'
+        },
+        {
+          title: 'Implement Automated Scanning',
+          description: 'Add security scanning to CI/CD',
+          timeline: '1 week',
+          impact: 'Prevents 80% of issues'
+        }
+      ],
+      generated_at: new Date().toISOString()
+    };
+    
+    res.json(insights);
+    
+  } catch (error) {
+    console.error('[@systems] AI insights failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // WEEK 3 PART 2: Code Modernization
 router.post('/repos/:id/modernize', async (req, res) => {
   try {

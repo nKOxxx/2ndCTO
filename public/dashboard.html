@@ -265,7 +265,14 @@
         }
         
         function viewRepo(repoId) {
-            window.open(`/report.html?id=${repoId}`, '_blank');
+            const repo = trends.repos.find(r => r.id === repoId);
+            const repoName = repo ? `${repo.owner}/${repo.name}` : 'Repository';
+            
+            if (repo && repo.status === 'completed') {
+                window.open(`/report.html?id=${repoId}`, '_blank');
+            } else {
+                window.open(`/progress.html?id=${repoId}&name=${encodeURIComponent(repoName)}`, '_blank');
+            }
         }
         
         // Load on page load

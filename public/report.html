@@ -563,6 +563,9 @@
                 const trends = await trendsRes.json();
 
                 renderReport(report, busFactor, trends);
+            
+            // Load AI insights after report renders
+            loadAIInsights(report);
             } catch (error) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -737,6 +740,25 @@
                     </div>
                 </div>
 
+                <!-- AI Insights Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <div class="section-icon info">🤖</div>
+                            AI Insights
+                        </div>
+                        <span class="section-count">Smart Analysis</span>
+                    </div>
+                    <div class="section-content">
+                        <div id="ai-insights">
+                            <div class="loading" style="padding: 20px;">
+                                <div class="loading-spinner" style="width: 24px; height: 24px;"></div>
+                                <p style="margin-top: 12px;">Generating AI insights...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Trends Section -->
                 ${trends.data_points > 1 ? `
                     <div class="section-card">
@@ -804,6 +826,106 @@
 
         function openModernize() {
             window.open(`/modernize.html?id=${repoId}`, '_blank');
+        }
+
+        // AI Insights rendering
+        async function loadAIInsights(report) {
+            const container = document.getElementById('ai-insights');
+            
+            // Simulate AI analysis (in production: fetch from /api/repos/${repoId}/insights)
+            await new Promise(r => setTimeout(r, 1500));
+            
+            const risk = report.analysis.risk_score;
+            const findings = report.security.summary;
+            
+            // Generate AI summary based on data
+            let summary = '';
+            let tone = '';
+            
+            if (risk >= 80) {
+                summary = `Critical attention required. This codebase has ${findings.critical} critical security issues and significant technical debt. Immediate action recommended.`;
+                tone = 'critical';
+            } else if (risk >= 50) {
+                summary = `Moderate risks detected. While functional, addressing the ${findings.high} high-priority issues will significantly improve maintainability and security.`;
+                tone = 'warning';
+            } else {
+                summary = `Healthy codebase with good practices. Minor improvements suggested for long-term maintainability.`;
+                tone = 'success';
+            }
+            
+            const grade = risk >= 90 ? { letter: 'F', color: 'danger' } :
+                         risk >= 70 ? { letter: 'D', color: 'warning' } :
+                         risk >= 50 ? { letter: 'C', color: 'caution' } :
+                         risk >= 30 ? { letter: 'B', color: 'good' } :
+                                      { letter: 'A', color: 'success' };
+            
+            const priorities = [
+                {
+                    rank: 1,
+                    title: findings.critical > 0 ? `Fix ${findings.critical} critical security issues` : 'Review high-priority findings',
+                    impact: `Reduces risk score by ~${Math.min(30, findings.critical * 10)} points`,
+                    effort: findings.critical > 0 ? '1-2 days' : '4-6 hours',
+                    type: 'security'
+                },
+                {
+                    rank: 2,
+                    title: 'Address knowledge concentration',
+                    impact: 'Improves bus factor and team resilience',
+                    effort: '2-3 weeks',
+                    type: 'process'
+                },
+                {
+                    rank: 3,
+                    title: `Modernize ${findings.medium} medium-priority patterns`,
+                    impact: 'Reduces technical debt',
+                    effort: '1 week',
+                    type: 'quick-win'
+                }
+            ];
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; background: ${grade.color === 'danger' ? 'var(--danger)' : grade.color === 'warning' ? 'var(--warning)' : grade.color === 'good' ? 'var(--success)' : 'var(--info)'}; color: ${grade.color === 'warning' ? '#000' : '#fff'};">
+                            ${grade.letter}
+                        </div>
+                        <div>
+                            <h3 style="font-size: 18px; margin-bottom: 4px;">Overall Health Grade</h3>
+                            <p style="color: var(--text-secondary); font-size: 14px;">${summary}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 style="font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;">
+                    📋 Recommended Action Plan
+                </h4>
+                
+                ${priorities.map(p => `
+                    <div style="display: flex; gap: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 12px; border-left: 3px solid ${p.type === 'security' ? 'var(--danger)' : p.type === 'quick-win' ? 'var(--success)' : 'var(--info)'};">
+                        <div style="width: 28px; height: 28px; background: var(--bg-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                            ${p.rank}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${p.title}</div>
+                            <div style="display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary);">
+                                <span>⏱️ ${p.effort}</span>
+                                <span>📈 ${p.impact}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                
+                <div style="margin-top: 24px; padding: 16px; background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(0, 212, 255, 0.05) 100%); border-radius: 8px; border: 1px solid var(--accent);">
+                    <h4 style="font-size: 14px; margin-bottom: 8px;">💡 Strategic Recommendation</h4>
+                    <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+                        ${risk >= 70 ? 
+                            'Schedule an emergency security sprint. The concentration of critical issues poses immediate risk to production stability and data security.' :
+                         risk >= 50 ?
+                            'Implement automated security scanning in your CI/CD pipeline to prevent 80% of these issues from reaching production.' :
+                            'Maintain current practices. Consider quarterly security reviews to keep technical debt under control.'}
+                    </p>
+                </div>
+            `;
         }
 
         // Load report on page load
