@@ -1,0 +1,184 @@
+name: '2ndCTO Security & Risk Analysis'
+description: 'Analyze repository for security risks, bus factor, and code health'
+author: '2ndCTO'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  repo-id:
+    description: '2ndCTO repository ID (optional - will be auto-detected)'
+    required: false
+  server-url:
+    description: '2ndCTO server URL'
+    required: false
+    default: 'http://localhost:3001'
+  fail-on-critical:
+    description: 'Fail workflow if critical issues found'
+    required: false
+    default: 'true'
+  max-risk-score:
+    description: 'Maximum acceptable risk score (0-100)'
+    required: false
+    default: '70'
+  create-issues:
+    description: 'Create GitHub issues for critical findings'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'GitHub token for creating issues'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  risk-score:
+    description: 'Overall risk score (0-100)'
+  critical-issues:
+    description: 'Number of critical security issues'
+  bus-factor:
+    description: 'Bus factor score'
+  report-url:
+    description: 'URL to full report'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Analyze Repository
+      shell: bash
+      run: |
+        echo "🔍 Starting 2ndCTO analysis..."
+        
+        # Get repo info
+        REPO_OWNER="${{ github.repository_owner }}"
+        REPO_NAME="${{ github.event.repository.name }}"
+        
+        echo "📁 Repository: $REPO_OWNER/$REPO_NAME"
+        echo "🌐 Server: ${{ inputs.server-url }}"
+        
+        # Add repo to 2ndCTO
+        RESPONSE=$(curl -s -X POST "${{ inputs.server-url }}/api/repos" \
+          -H "Content-Type: application/json" \
+          -d "{\"owner\":\"$REPO_OWNER\",\"name\":\"$REPO_NAME\"}")
+        
+        if [ $? -ne 0 ]; then
+          echo "❌ Failed to connect to 2ndCTO server"
+          exit 1
+        fi
+        
+        REPO_ID=$(echo $RESPONSE | jq -r '.repo.id // empty')
+        
+        if [ -z "$REPO_ID" ]; then
+          echo "❌ Failed to add repository"
+          echo "Response: $RESPONSE"
+          exit 1
+        fi
+        
+        echo "✅ Repository added (ID: $REPO_ID)"
+        echo "repo-id=$REPO_ID" >> $GITHUB_OUTPUT
+        
+        # Wait for analysis to complete
+        echo "⏳ Waiting for analysis..."
+        MAX_ATTEMPTS=30
+        ATTEMPT=0
+        
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          STATUS=$(curl -s "${{ inputs.server-url }}/api/repos/$REPO_ID/status")
+          ANALYSIS_STATUS=$(echo $STATUS | jq -r '.status')
+          
+          if [ "$ANALYSIS_STATUS" = "completed" ]; then
+            echo "✅ Analysis complete!"
+            break
+          elif [ "$ANALYSIS_STATUS" = "failed" ]; then
+            echo "❌ Analysis failed"
+            exit 1
+          fi
+          
+          ATTEMPT=$((ATTEMPT + 1))
+          echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS - Status: $ANALYSIS_STATUS"
+          sleep 10
+        done
+        
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+          echo "⚠️ Analysis timeout - check server status"
+          exit 1
+        fi
+        
+        # Get report
+        REPORT=$(curl -s "${{ inputs.server-url }}/api/repos/$REPO_ID/report")
+        RISK_SCORE=$(echo $REPORT | jq -r '.analysis.risk_score // 0')
+        CRITICAL=$(echo $REPORT | jq -r '.security.summary.critical // 0')
+        
+        echo "📊 Risk Score: $RISK_SCORE"
+        echo "🚨 Critical Issues: $CRITICAL"
+        
+        echo "risk-score=$RISK_SCORE" >> $GITHUB_OUTPUT
+        echo "critical-issues=$CRITICAL" >> $GITHUB_OUTPUT
+        echo "report-url=${{ inputs.server-url }}/report.html?id=$REPO_ID" >> $GITHUB_OUTPUT
+        
+        # Post PR comment if in PR context
+        if [ -n "${{ github.event.pull_request.number }}" ]; then
+          echo "💬 Posting PR comment..."
+          
+          COMMENT="## 🚌 2ndCTO Analysis Report\n\n"
+          COMMENT+="**Risk Score:** $RISK_SCORE/100\n\n"
+          COMMENT+="**Critical Issues:** $CRITICAL\n\n"
+          COMMENT+="[📊 View Full Report](${{ inputs.server-url }}/report.html?id=$REPO_ID)\n\n"
+          
+          if [ "$RISK_SCORE" -ge 70 ]; then
+            COMMENT+=":warning: **High risk detected!** Please review critical issues before merging."
+          elif [ "$CRITICAL" -gt 0 ]; then
+            COMMENT+=":warning: **$CRITICAL critical security issues found.** Consider addressing before merge."
+          else
+            COMMENT+=":white_check_mark: **Code looks good!** No critical issues detected."
+          fi
+          
+          curl -s -X POST \
+            -H "Authorization: token ${{ inputs.github-token }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\":\"$COMMENT\"}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" > /dev/null
+        fi
+        
+        # Create issues for critical findings
+        if [ "${{ inputs.create-issues }}" = "true" ] && [ "$CRITICAL" -gt 0 ]; then
+          echo "🎫 Creating GitHub issues for critical findings..."
+          
+          # Get findings and create issues
+          FINDINGS=$(echo $REPORT | jq -r '.security.top_findings[] | select(.severity == "critical") | @base64')
+          
+          for finding in $FINDINGS; do
+            DECODED=$(echo $finding | base64 -d)
+            TITLE=$(echo $DECODED | jq -r '.description')
+            FILE=$(echo $DECODED | jq -r '.file_path')
+            
+            ISSUE_BODY="## 🚨 Critical Security Issue Detected by 2ndCTO\n\n"
+            ISSUE_BODY+="**Issue:** $TITLE\n\n"
+            ISSUE_BODY+"**Location:** \`$FILE\`\n\n"
+            ISSUE_BODY+"**Severity:** Critical\n\n"
+            ISSUE_BODY+"---\n\n"
+            ISSUE_BODY+"This issue was automatically detected by [2ndCTO](https://github.com/nKOxxx/2ndCTO) code analysis.\n\n"
+            ISSUE_BODY+"[📊 View Full Report](${{ inputs.server-url }}/report.html?id=$REPO_ID)"
+            
+            curl -s -X POST \
+              -H "Authorization: token ${{ inputs.github-token }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"title\":\"[2ndCTO] $TITLE\",\"body\":\"$ISSUE_BODY\",\"labels\":[\"security\",\"critical\"]}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues" > /dev/null
+            
+            echo "  Created issue: $TITLE"
+          done
+        fi
+        
+        # Fail if critical issues found
+        if [ "${{ inputs.fail-on-critical }}" = "true" ] && [ "$CRITICAL" -gt 0 ]; then
+          echo "::error::Found $CRITICAL critical security issues!"
+          exit 1
+        fi
+        
+        # Fail if risk score too high
+        if [ "$RISK_SCORE" -gt "${{ inputs.max-risk-score }}" ]; then
+          echo "::error::Risk score ($RISK_SCORE) exceeds maximum (${{ inputs.max-risk-score }})!"
+          exit 1
+        fi
+        
+        echo "✅ All checks passed!"
