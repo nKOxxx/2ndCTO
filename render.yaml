@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: 2ndcto-prod
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true
