@@ -1,9 +1,12 @@
+# 2ndCTO - Render Starter Plan Configuration  
 services:
   - type: web
-    name: 2ndcto-prod
+    name: 2ndcto
     runtime: node
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -19,5 +22,8 @@ services:
         sync: false
       - key: GITHUB_TOKEN
         sync: false
-    healthCheckPath: /api/health
+      - key: JWT_SECRET
+        generateValue: true
+      - key: API_RATE_LIMIT
+        value: '100'
     autoDeploy: true
