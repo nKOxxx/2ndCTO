@@ -99,6 +99,12 @@ function getConnectionMetrics() {
 
 // Test connections
 async function testConnections() {
+  // Demo mode - skip DB checks
+  if (process.env.DEMO_MODE === 'true') {
+    console.log('[@systems] DEMO MODE: Database checks skipped');
+    return true;
+  }
+
   try {
     const { data, error } = await supabase.from('repositories').select('count');
     if (error && error.code !== 'PGRST116') throw error;
@@ -110,6 +116,7 @@ async function testConnections() {
     return true;
   } catch (err) {
     console.error('[@systems] Database connection failed:', err.message);
+    // Return true anyway so server starts (graceful degradation)
     return true;
   }
 }

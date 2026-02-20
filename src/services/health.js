@@ -193,6 +193,15 @@ class HealthService {
    * Quick health check (for load balancers)
    */
   async getBasicHealth() {
+    // Demo mode - always return ok
+    if (process.env.DEMO_MODE === 'true') {
+      return {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        demo: true
+      };
+    }
+
     const db = await this.checkDatabase();
     
     return {
