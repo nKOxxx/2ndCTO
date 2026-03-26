@@ -1,195 +1,112 @@
-# 2ndCTO - AI-Powered Codebase Risk Analyzer
+# 2ndCTO
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/nKOxxx/2ndCTO)
-[![GitHub](https://img.shields.io/badge/GitHub-nKOxxx%2F2ndCTO-black)](https://github.com/nKOxxx/2ndCTO)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
-> **Know Your Codebase Risk. Protect Your Engineering Investment.**
+AI-powered codebase risk analyzer. Scans GitHub repositories for security vulnerabilities, bus factor risk, and technical debt — and delivers actionable insights to keep your engineering healthy.
 
-2ndCTO analyzes GitHub repositories for security risks, bus factor (knowledge concentration), and technical debt. Get actionable insights to keep your codebase healthy and your team resilient.
+## Features
 
-![2ndCTO Dashboard](docs/screenshot-dashboard.png)
+- **Security Analysis** — Detect secrets, SQL injection, XSS, and unsafe patterns with a 0–100 risk score
+- **Bus Factor Analysis** — Identify knowledge concentration and single points of failure across your team
+- **Code Modernization** — Surface legacy patterns (ES5, callbacks, `var`) ready for upgrade
+- **AI Insights** — Prioritized recommendations with before/after fix examples
 
-## 🚀 Features
+## Prerequisites
 
-### Security Analysis
-- 🔒 **Secret Detection** - Find API keys, passwords, tokens in code
-- 🛡️ **Vulnerability Scanning** - SQL injection, XSS, unsafe eval detection
-- 📊 **Risk Scoring** - 0-100 score with severity breakdown
-
-### Bus Factor Analysis
-- 🚌 **Knowledge Distribution** - Identify single points of failure
-- 👥 **Team Insights** - See who knows what in your codebase
-- ⚠️ **Risk Alerts** - Get warned before knowledge walks out the door
-
-### Code Modernization
-- 🔄 **Legacy Conversion** - ES5 → ES2022, Python 2 → 3
-- 📈 **Pattern Detection** - Callbacks → async/await, var → const
-- ✅ **Validation** - Syntax check and test generation
-
-### AI-Powered Insights
-- 🤖 **Smart Recommendations** - Prioritized action plans
-- 💡 **Fix Suggestions** - Before/after code examples
-- 📈 **Trend Analysis** - Track improvements over time
-
-## 📦 Quick Start
-
-### Prerequisites
-- Node.js 18+ and npm
+- Node.js 18+
 - PostgreSQL (Supabase recommended)
 - Redis (Upstash recommended)
 
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/nKOxxx/2ndCTO.git
 cd 2ndCTO
-
-# Install dependencies
 npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your credentials
-
-# Run database migrations
-# (See scripts/ folder for SQL files)
-
-# Start the application
+cp .env.example .env   # fill in your credentials
+npm run db:migrate
 npm run dev
 ```
 
-### Environment Variables
+Open http://localhost:3001 in your browser.
+
+## Environment Variables
 
 ```bash
-# Server
 PORT=3001
 NODE_ENV=development
 
-# Supabase
 SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_KEY=your_service_key
 
-# Redis
 REDIS_URL=rediss://your_upstash_url
 
-# GitHub
 GITHUB_TOKEN=your_github_personal_access_token
+GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ```
 
-## 🎯 Usage
-
-### Web Interface
-
-1. **Landing Page** - http://localhost:3001
-2. **Dashboard** - http://localhost:3001/dashboard.html
-3. **Analyze Repo** - Enter GitHub URL and click "Analyze"
-
-### API Endpoints
+## API
 
 ```bash
-# Add repository
+# Add a repository for analysis
 curl -X POST http://localhost:3001/api/repos \
   -H "Content-Type: application/json" \
   -d '{"owner":"facebook","name":"react"}'
 
-# Get analysis report
+# Fetch report
 curl http://localhost:3001/api/repos/{repo-id}/report
 
-# Get AI insights
+# AI insights
 curl http://localhost:3001/api/repos/{repo-id}/insights
 
-# Get bus factor
+# Bus factor
 curl http://localhost:3001/api/repos/{repo-id}/bus-factor
 ```
 
-### Chrome Extension
+Full API reference: [docs/API.md](docs/API.md)
 
-1. Open Chrome → `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
-4. Select the `chrome-extension/` folder
-5. Visit any GitHub repo and click "Analyze with 2ndCTO"
+## Chrome Extension
 
-### GitHub Action
+1. Go to `chrome://extensions/` and enable Developer mode
+2. Click "Load unpacked" and select the `chrome-extension/` folder
+3. Visit any GitHub repo and click "Analyze with 2ndCTO"
+
+## GitHub Action
 
 ```yaml
-name: Security Analysis
-on: [push, pull_request]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: nKOxxx/2ndCTO/.github/actions/2ndcto-analyze@main
-        with:
-          server-url: 'http://your-2ndcto-server.com'
-          fail-on-critical: 'true'
-          create-issues: 'true'
+- uses: nKOxxx/2ndCTO/.github/actions/2ndcto-analyze@main
+  with:
+    server-url: 'https://your-2ndcto-server.com'
+    fail-on-critical: 'true'
+    create-issues: 'true'
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Chrome Ext    │     │   Web Dashboard │     │   GitHub Action │
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────▼─────────────┐
-                    │     Express API (3001)    │
-                    └─────────────┬─────────────┘
-                                  │
-         ┌────────────────────────┼────────────────────────┐
-         │                        │                        │
-┌────────▼────────┐    ┌─────────▼──────────┐   ┌────────▼────────┐
-│  PostgreSQL     │    │  Redis (Bull)      │   │   GitHub API    │
-│  (Supabase)     │    │  (Job Queue)       │   │                 │
-└─────────────────┘    └────────────────────┘   └─────────────────┘
+Chrome Ext / Web Dashboard / GitHub Action
+                    │
+          Express API (port 3001)
+                    │
+    ┌───────────────┼───────────────┐
+ PostgreSQL    Redis (Bull)    GitHub API
+ (Supabase)   (Job Queue)
 ```
 
-### Tech Stack
+**Stack:** Node.js, Express, PostgreSQL, Redis + Bull, Tree-sitter, Socket.io
 
-- **Backend**: Node.js, Express.js
-- **Database**: PostgreSQL (Supabase)
-- **Queue**: Redis + Bull
-- **Parser**: Tree-sitter (AST analysis)
-- **Frontend**: Vanilla HTML/JS (no framework)
-- **Real-time**: Socket.io
+## Risk Scoring
 
-## 📊 Understanding Reports
+| Score | Grade | Action |
+|-------|-------|--------|
+| 0–30  | A     | Maintain practices |
+| 30–50 | B     | Minor improvements |
+| 50–70 | C     | Review recommended |
+| 70–90 | D     | Address issues soon |
+| 90–100| F     | Immediate action required |
 
-### Risk Score (0-100)
-
-| Score | Grade | Meaning | Action |
-|-------|-------|---------|--------|
-| 0-30 | A | Excellent | Maintain practices |
-| 30-50 | B | Good | Minor improvements |
-| 50-70 | C | Fair | Review recommended |
-| 70-90 | D | Poor | Address issues soon |
-| 90-100 | F | Critical | Immediate action |
-
-### Bus Factor
-
-| Score | Status | Interpretation |
-|-------|--------|----------------|
-| 1-1.5 | 🔴 Critical | Single point of failure |
-| 1.5-2.5 | 🟡 Warning | Limited knowledge spread |
-| 2.5-4 | 🟢 Good | Decent distribution |
-| 4+ | 🟢 Excellent | Healthy team resilience |
-
-## 🛠️ Development
-
-### Project Structure
+## Project Structure
 
 ```
 2ndCTO/
@@ -200,82 +117,22 @@ jobs:
 │   ├── ingestion/     # Repo cloning
 │   ├── queue/         # Bull job queue
 │   └── index.js       # Entry point
-├── public/            # Static files (UI)
+├── public/            # Web UI
 ├── chrome-extension/  # Browser extension
 ├── scripts/           # SQL migrations
 └── .github/           # GitHub Actions
 ```
 
-### Running Tests
+## Deployment
 
-```bash
-npm test
-```
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Render, Railway, and Docker instructions.
 
-### Adding New Security Rules
+## Contributing
 
-Edit `src/analysis/security-scanner.js`:
+1. Fork the repo and create a feature branch
+2. Make your changes with tests
+3. Open a pull request
 
-```javascript
-{
-  id: 'MY_NEW_RULE',
-  name: 'Descriptive Name',
-  pattern: /regex pattern/,
-  severity: 'high',
-  category: 'vulnerability'
-}
-```
+## License
 
-## 🚀 Deployment
-
-### Render (Recommended)
-
-1. Push to GitHub
-2. Connect Render to repo
-3. Set environment variables
-4. Deploy!
-
-### Docker
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --production
-COPY . .
-EXPOSE 3001
-CMD ["npm", "start"]
-```
-
-```bash
-docker build -t 2ndcto .
-docker run -p 3001:3001 --env-file .env 2ndcto
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Tree-sitter for AST parsing
-- Supabase for managed PostgreSQL
-- Upstash for Redis hosting
-- GitHub for the API
-
-## 📞 Support
-
-- GitHub Issues: [github.com/nKOxxx/2ndCTO/issues](https://github.com/nKOxxx/2ndCTO/issues)
-- Documentation: http://localhost:3001 (when running locally)
-
----
-
-**Built with ❤️ by 2ndCTO Team**
+[MIT](LICENSE)

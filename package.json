@@ -1,8 +1,22 @@
 {
   "name": "2ndcto",
   "version": "1.1.0",
-  "description": "AI co-founder for technical continuity",
+  "description": "AI-powered codebase risk analyzer for security, bus factor, and technical debt",
   "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nKOxxx/2ndCTO.git"
+  },
+  "keywords": [
+    "codebase-analysis",
+    "security-scanning",
+    "bus-factor",
+    "technical-debt",
+    "github",
+    "ast",
+    "static-analysis"
+  ],
+  "license": "MIT",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
